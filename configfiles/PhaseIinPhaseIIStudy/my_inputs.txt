@@ -1,0 +1,2 @@
+/pnfs/annie/persistent/users/egpott/BeamOnRuns/ProcessedRawData_TankAndMRDAndCTC_R2630S0p0
+/pnfs/annie/persistent/users/egpott/BeamOnRuns/ProcessedRawData_TankAndMRDAndCTC_R2630S0p1

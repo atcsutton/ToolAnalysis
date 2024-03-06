@@ -1,0 +1,5 @@
+verbosity 2
+OutputFilePrefix P2NBG_beamoff_output
+ClusterPEMin 5
+ClusterPEMax 150
+BeamOn 0 #0 = beam off, 1 = beam on
