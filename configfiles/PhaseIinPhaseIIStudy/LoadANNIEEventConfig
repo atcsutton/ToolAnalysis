@@ -1,2 +1,2 @@
-verbose 2
+verbose 0
 FileForListOfInputs ./configfiles/PhaseIinPhaseIIStudy/my_inputs.txt

@@ -1,6 +1,6 @@
 # ClusterFinder Config File
 
-verbosity 1
+verbosity 0
 HitStore Hits ##Either 'MCHits' or 'Hits' (accessed in ANNIEEvent store)
 OutputFile ClusterFinder_DefaultOutput ##Output root prefix name for the current run
 ClusterFindingWindow 100 ##in ns, size of the window used to "clusterize"

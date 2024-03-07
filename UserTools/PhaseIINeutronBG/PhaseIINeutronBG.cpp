@@ -46,6 +46,11 @@ bool PhaseIINeutronBG::Initialise(std::string configfile, DataModel &data){
     return false;
   }
 
+  // Things have changed slightly. ClusterClassifiers now puts some stuff into the RecoEvent store
+  // So we have to make sure that exists
+  if (!m_data->Stores.count("RecoEvent"))
+    m_data->Stores["RecoEvent"] = new BoostStore(false, 2);
+
 
   // initialize ROOT stuff
   std::string root_outpfile_ext = ".root";
@@ -97,8 +102,11 @@ bool PhaseIINeutronBG::Execute(){
   if (!get_ok) { Log("PhaseIINeutronBG tool: No EventNumber object in ANNIEEvent! Abort!", v_error, verbosity); return true; }
   get_ok = m_data->Stores["ANNIEEvent"]->Get("EventTimeTank", fEventTimeTank);
   if (!get_ok) { Log("PhaseIINeutronBG tool: No EventTimeTank object in ANNIEEvent! Abort!", v_error, verbosity); return true; }
-  get_ok = m_data->Stores["ANNIEEvent"]->Get("BeamStatus",beamstat);
+  get_ok = m_data->Stores["ANNIEEvent"]->Get("BeamStatus", beamstat);
   if (!get_ok) { Log("PhaseIINeutronBG tool: No BeamStatus object in ANNIEEvent! Abort!", v_error, verbosity); return true;}
+
+
+  
   bool isBeam = false;
   bool isExtTrig = false;
   bool isLED = false;
@@ -114,7 +122,10 @@ bool PhaseIINeutronBG::Execute(){
   fpot = beamstat.pot(); // protons on target (delivered by beam)
   totalpot += fpot;
   beamflag = -1;
- 
+
+
+
+
   if (beamstat.condition() == BeamCondition::NonBeamMinibuffer) {beamflag=1;} // beam is off
   else if (beamstat.condition() == BeamCondition::Ok) {beamflag=0;} // beam is on
   else if (beamstat.condition() == BeamCondition::Bad) {beamflag=2;} // beam is funky
@@ -140,7 +151,6 @@ bool PhaseIINeutronBG::Execute(){
       if (thedetector->GetDetectorElement() == "Veto") { fVetoHit = 1; hasVeto = true;}
     }
   }
-
 
   //  check for MRD tracks  //
   bool hasMRDTracks = false;
