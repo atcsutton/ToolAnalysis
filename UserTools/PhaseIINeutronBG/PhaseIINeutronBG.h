@@ -76,6 +76,15 @@ class PhaseIINeutronBG: public Tool {
   int pethresh;
   int PMTthresh;
   bool pot_ok;
+  int cc_lt = 0;
+  int nc_lt = 0;
+  int beamoff_lt = 0;
+  int woext_lt = 0; 
+  uint64_t totalpot = 0;                                                                                                                     
+  uint64_t beamoff_pot = 0;                                                                                                                  
+  uint64_t woext_pot = 0;                                                                                                                   
+  uint64_t cc_pot = 0;                                                                                                       
+  uint64_t nc_pot = 0;
 
   // ROOT 
   TFile *p2nbg_root_outp = nullptr;
@@ -83,15 +92,36 @@ class PhaseIINeutronBG: public Tool {
   // ROOT histograms
   TH1F *h_clusterCharge = nullptr;
   TH1F *h_beamFlag = nullptr;
+
+  TH1F *h_beamoff_lt = nullptr;
+  TH1F *h_woext_lt = nullptr;
+  TH1F *h_cc_lt = nullptr;
+  TH1F *h_nc_lt = nullptr;
+
+  TH1F *h_totalpot = nullptr;
+
+  TH1F *h_beamoff_pot = nullptr;
+  TH1F *h_woext_pot = nullptr;
+  TH1F *h_cc_pot = nullptr;
+  TH1F *h_nc_pot = nullptr;
+
   TH1F *h_clusterTime = nullptr;
+  TH1F *h_clusterTime_beamoff = nullptr;
+
   TH1F *h_clusterTime_beam = nullptr;
   TH1F *h_clusterTime_prompt = nullptr;
   TH1F *h_clusterTime_delayed = nullptr;
   TH1F *h_clusterTime_nonCCbeam = nullptr;
+  TH1F *h_clusterTime_nonCCbeamoff = nullptr;
+
   TH1F *h_clusterTime_nonCCbeam_prompt = nullptr;
+  TH1F *h_clusterTime_nonCCbeamoff_prompt = nullptr;
+
   TH1F *h_clusterTime_nonCCbeam_prompt_noVeto = nullptr;
   TH1F *h_clusterTime_nonCCbeam_prompt_noVetoMRD = nullptr;
   TH1F *h_clusterTime_nonCCbeam_delayed = nullptr;
+  TH1F *h_clusterTime_nonCCbeamoff_delayed = nullptr;
+
   TH1F *h_clusterTime_nonCCbeam_delayed_noVeto = nullptr;
   TH1F *h_clusterTime_nonCCbeam_delayed_noVetoMRD = nullptr;
   TH1F *h_clusterTime_background_neutrons = nullptr;
@@ -99,14 +129,22 @@ class PhaseIINeutronBG: public Tool {
   TH1F *h_clusterTime_delayed_hitPMT = nullptr;
   TH1F *h_clusterTime_prompt_hitPMT = nullptr;
   TH1F *h_clusterPE = nullptr;
+  TH1F *h_clusterPE_beamoff = nullptr;
+
   TH1F *h_clusterPE_beam = nullptr;
   TH1F *h_clusterPE_prompt = nullptr;
   TH1F *h_clusterPE_delayed = nullptr;
   TH1F *h_clusterPE_nonCCbeam = nullptr;
+  TH1F *h_clusterPE_nonCCbeamoff = nullptr;
+
   TH1F *h_clusterPE_nonCCbeam_prompt = nullptr;
+  TH1F *h_clusterPE_nonCCbeamoff_prompt = nullptr;
+
   TH1F *h_clusterPE_nonCCbeam_prompt_noVeto = nullptr;
   TH1F *h_clusterPE_nonCCbeam_prompt_noVetoMRD = nullptr;
   TH1F *h_clusterPE_nonCCbeam_delayed = nullptr;
+  TH1F *h_clusterPE_nonCCbeamoff_delayed = nullptr;
+
   TH1F *h_clusterPE_nonCCbeam_delayed_noVeto = nullptr;
   TH1F *h_clusterPE_nonCCbeam_delayed_noVetoMRD = nullptr;
   TH1F *h_clusterPE_background_neutrons = nullptr;

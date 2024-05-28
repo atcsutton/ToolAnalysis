@@ -3,10 +3,10 @@
 #include <fstream>
 
 PhaseIINeutronBG::PhaseIINeutronBG():Tool(){}
-uint64_t totalpot = 0;
 
 bool PhaseIINeutronBG::Initialise(std::string configfile, DataModel &data){
 
+  
   ///////////////////////// Useful header /////////////////////////
   if (configfile != "") m_variables.Initialise(configfile); // loading config file
   //m_variables.Print();
@@ -105,7 +105,6 @@ bool PhaseIINeutronBG::Execute(){
   get_ok = m_data->Stores["ANNIEEvent"]->Get("BeamStatus", beamstat);
   if (!get_ok) { Log("PhaseIINeutronBG tool: No BeamStatus object in ANNIEEvent! Abort!", v_error, verbosity); return true;}
 
-
   
   bool isBeam = false;
   bool isExtTrig = false;
@@ -116,13 +115,37 @@ bool PhaseIINeutronBG::Execute(){
   if (!get_ok) { Log("PhaseIINeutronBG tool: No TriggerExtended object in ANNIEEvent! Abort!", v_error, verbosity); return true; }
   if (trigword == 5) { isBeam = true; } //beam trigger
   if (trigext == 2) { isExtTrig = true; } //noncc (forced extended window)
-  if (trigword == 31) { isLED = true; } // LED triggerword, used as beam off trigger
+  if (trigword == 31) { isLED = true; } // LED triggerword, used as beam off
   bool isnoncc = isBeam && isExtTrig; 
   bool noprompt = true;
   fpot = beamstat.pot(); // protons on target (delivered by beam)
   totalpot += fpot;
   beamflag = -1;
 
+  
+  if (isLED == true) //beam off, readout window is 2us
+    {
+       beamoff_lt += 2;
+       beamoff_pot += fpot;
+    }
+
+  if (isBeam && trigext == 0) //beam on without extended trigger, readout window is 2us
+    {
+      woext_lt += 2;
+      woext_pot +=fpot;
+    }
+
+  if (isBeam && trigext == 1) //Beam on with CC extended trigger, readout window is 70us
+    {
+      cc_lt += 70;
+      cc_pot += fpot;
+    }
+
+  if (isBeam && trigext == 2) //Beam on with NC extended trigger, readout window is 70us
+    {
+      nc_lt += 70;
+      nc_pot += fpot;
+    }
 
 
 
@@ -295,86 +318,113 @@ bool PhaseIINeutronBG::Execute(){
       goodnoncc = 1;
     } 
 
-    // current (garbage) setup is the hists will be filled either for beam on or beam off as indicated in the config file. Probably would be better to have separate hists for beam on/off and fill them all in one go
-    if ((isBeam && BeamOn==1) || (beamflag==1 && BeamOn == 0 && isLED)) 
+    // Updated version with filling up hist of beam off and beam on at the same time.
+
+    if ((isBeam && BeamOn==1)) 
     {
       h_clusterTime_beam->Fill(cluster_time);
       h_clusterPE_beam->Fill(cluster_PE);
     }
+    if ( beamflag==1 && isLED)
+    {
+	h_clusterTime_beamoff->Fill(cluster_time);
+	h_clusterPE_beamoff->Fill(cluster_PE);
+    }
 
-    if ((isBeam && isNonCC && BeamOn==1) || (beamflag==1 && BeamOn == 0 && isLED))
+
+    if (isBeam  && isNonCC && BeamOn==1)
     {
       h_clusterTime_nonCCbeam->Fill(cluster_time);
       h_clusterPE_nonCCbeam->Fill(cluster_PE);
     }
+   
 
-
-    if (cluster_time < 2000.) //ALL prompt
-    {
-      h_clusterTime_prompt->Fill(cluster_time);
-      h_clusterPE_prompt->Fill(cluster_PE);
-      
-        for (std::vector<int>::iterator i = fClusterPMT.begin(); i != fClusterPMT.end(); ++i)
-        {
-          h_clusterTime_prompt_hitPMT->Fill(*i); // needed to see which PMTs were hit at some point for debugging purposes, probably no longer needed	  
-        }
-
-      if ((isBeam && isNonCC && BeamOn == 1) || (beamflag==1 && BeamOn == 0 && isLED)) 
+    if (cluster_time < 2000.0) // All prompt
       {
-        h_clusterTime_nonCCbeam_prompt->Fill(cluster_time);
-        h_clusterPE_nonCCbeam_prompt->Fill(cluster_PE);
+	h_clusterTime_prompt->Fill(cluster_time);
+	h_clusterPE_prompt->Fill(cluster_PE);
 
-        if (!hasVeto)
-        {
-          h_clusterTime_nonCCbeam_prompt_noVeto->Fill(cluster_time);
-          h_clusterPE_nonCCbeam_prompt_noVeto->Fill(cluster_PE);
-
-	  if (!hasMRDTracks)
+	for (auto i = fClusterPMT.begin(); i != fClusterPMT.end(); ++i)
 	  {
-	    h_clusterTime_nonCCbeam_prompt_noVetoMRD->Fill(cluster_time);
-	    h_clusterPE_nonCCbeam_prompt_noVetoMRD->Fill(cluster_PE);
-	    if (BeamOn==0 && isLED &&  fpot==0 && fClusterCharge < 120 && fClusterChargeBalance < 0.4){ //beam off uses LED trigger which is just 2us hence these hists being filled for clustertime<2us if looking for beam off data
-          
-              h_clusterTime_background_neutrons->Fill(cluster_time);
-              h_clusterPE_background_neutrons->Fill(cluster_PE);
-            }	
+	    h_clusterTime_prompt_hitPMT->Fill(*i); // Filling PMT hit histogram for debugging
 	  }
-        }
+        
 
-
-      }
-    } else if (cluster_time > 2000.) //ALL delayed
-    {
-      h_clusterTime_delayed->Fill(cluster_time); //pretty much the same stuff as above but with delayed clusters instead of prompt
-      h_clusterPE_delayed->Fill(cluster_PE);
-      for (std::vector<int>::iterator i = fClusterPMT.begin(); i != fClusterPMT.end(); ++i)
-      {
-	h_clusterTime_delayed_hitPMT->Fill(*i); 
-      }
-      if ((isBeam && isNonCC && BeamOn==1) || (beamflag==1 && BeamOn == 0 && isLED))
-      {
-        h_clusterTime_nonCCbeam_delayed->Fill(cluster_time);
-        h_clusterPE_nonCCbeam_delayed->Fill(cluster_PE);
-
-        if (!hasVeto) 
-	{
-          h_clusterTime_nonCCbeam_delayed_noVeto->Fill(cluster_time);
-          h_clusterPE_nonCCbeam_delayed_noVeto->Fill(cluster_PE);
-
-	  if (!hasMRDTracks)	
+       	if (beamflag == 1 && isLED)
 	  {
-	    h_clusterTime_nonCCbeam_delayed_noVetoMRD->Fill(cluster_time);
-	    h_clusterPE_nonCCbeam_delayed_noVetoMRD->Fill(cluster_PE);
-	    if (BeamOn==1 && cluster_time > 13000. && fClusterCharge < 120 && fClusterChargeBalance < 0.4){
-		std::cout << "MADE IT HERE" << std::endl;
-	        h_clusterTime_background_neutrons->Fill(cluster_time);
-		h_clusterPE_background_neutrons->Fill(cluster_PE);
-	    }
+	    h_clusterTime_nonCCbeamoff_prompt->Fill(cluster_time); //Related to beam off readout in 2us
+	    h_clusterPE_nonCCbeamoff_prompt->Fill(cluster_PE);
 	  }
-        }
-      }
-    }
 
+	if (isBeam && isNonCC && BeamOn == 1)
+	  {
+	    h_clusterTime_nonCCbeam_prompt->Fill(cluster_time);
+	    h_clusterPE_nonCCbeam_prompt->Fill(cluster_PE);
+
+	    if (!hasVeto)
+	      {
+		h_clusterTime_nonCCbeam_prompt_noVeto->Fill(cluster_time);
+		h_clusterPE_nonCCbeam_prompt_noVeto->Fill(cluster_PE);
+
+		if (!hasMRDTracks)
+		  {
+		    h_clusterTime_nonCCbeam_prompt_noVetoMRD->Fill(cluster_time);
+		    h_clusterPE_nonCCbeam_prompt_noVetoMRD->Fill(cluster_PE);
+
+		    if (BeamOn == 0 && isLED && fpot == 0 && fClusterCharge < 120 && fClusterChargeBalance < 0.4)
+		      { 
+			// Beam off uses LED trigger which is just 2us,
+			// hence filling these histograms for cluster time < 2us if looking for beam off data
+			h_clusterTime_background_neutrons->Fill(cluster_time);
+			h_clusterPE_background_neutrons->Fill(cluster_PE);
+		      }
+		  }
+	      }
+	  }
+      }
+    else if (cluster_time > 2000.0) // All delayed
+      {
+	h_clusterTime_delayed->Fill(cluster_time); // Filling histograms for delayed clusters
+	h_clusterPE_delayed->Fill(cluster_PE);
+
+	for (auto i = fClusterPMT.begin(); i != fClusterPMT.end(); ++i)
+	  {
+	    h_clusterTime_delayed_hitPMT->Fill(*i); // Filling PMT hit histogram for debugging
+	  }
+
+       	if (beamflag == 1 && isLED)
+	  {
+	    h_clusterTime_nonCCbeamoff_delayed->Fill(cluster_time);
+	    h_clusterPE_nonCCbeamoff_delayed->Fill(cluster_PE);
+	  }
+
+	if (isBeam && isNonCC && BeamOn == 1)
+	  {
+	    h_clusterTime_nonCCbeam_delayed->Fill(cluster_time);
+	    h_clusterPE_nonCCbeam_delayed->Fill(cluster_PE);
+
+	    if (!hasVeto)
+	      {
+		h_clusterTime_nonCCbeam_delayed_noVeto->Fill(cluster_time);
+		h_clusterPE_nonCCbeam_delayed_noVeto->Fill(cluster_PE);
+
+		if (!hasMRDTracks)
+		  {
+		    h_clusterTime_nonCCbeam_delayed_noVetoMRD->Fill(cluster_time);
+		    h_clusterPE_nonCCbeam_delayed_noVetoMRD->Fill(cluster_PE);
+                
+		    if (BeamOn == 1 && cluster_time > 13000.0 && fClusterCharge < 120 && fClusterChargeBalance < 0.4)
+		      {
+			std::cout << "MADE IT HERE" << std::endl; // Debugging message
+			h_clusterTime_background_neutrons->Fill(cluster_time);
+			h_clusterPE_background_neutrons->Fill(cluster_PE);
+		      }
+		  }
+	      }
+	  }
+      }
+     
+   
  /*   if (cluster_time > 2000. && cluster_time < 4000.) //looking at different possible regions of interest, commented out bc wasn't needed but I left it in case it would be useful in the future. can probs just be deleted.
     {
 	if ((isBeam && BeamOn==1) || (beamflag==1 && BeamOn == 0 && isLED)) {h_clusterCB_michel->Fill(fClusterChargeBalance);}
@@ -408,10 +458,31 @@ bool PhaseIINeutronBG::Execute(){
 
 
 bool PhaseIINeutronBG::Finalise(){
-  std::cout << "Total POT: " << totalpot << std::endl;  
+  std::cout << "Total POT: " << totalpot << std::endl;
+  std::cout << "beamoff_lt: " << beamoff_lt << std::endl;
+  std::cout << "woext_lt: " << woext_lt << std::endl;
+  std::cout << "cc_lt: " << cc_lt << std::endl;
+  std::cout << "nc_lt: " << nc_lt << std::endl;
+  std::cout << "beamoff_pot: " << beamoff_pot << std::endl;
+  std::cout << "woext_pot: " << woext_pot << std::endl;
+  std::cout << "cc_pot: " << cc_pot << std::endl;
+  std::cout << "nc_pot: " << nc_pot << std::endl;
+
+
+  
   p2nbg_root_outp->cd();
   t_TankCluster->Write("", TObject::kOverwrite);
   t_Trigger->Write("", TObject::kOverwrite);
+  //Live time and POT histograms for acculated values of respective event selection.
+  h_totalpot->Fill(1,totalpot);
+  h_beamoff_lt->Fill(1, beamoff_lt);
+  h_beamoff_pot->Fill(1,beamoff_pot);
+  h_woext_pot->Fill(1, woext_pot);
+  h_woext_lt->Fill(1, woext_lt);
+  h_cc_lt->Fill(1,cc_lt);
+  h_cc_pot->Fill(1,cc_pot);
+  h_nc_lt->Fill(1, nc_lt);
+  h_nc_pot->Fill(1, nc_pot);
   this->WriteHist();
   p2nbg_root_outp->Close();
   delete p2nbg_root_outp;
@@ -473,15 +544,37 @@ void PhaseIINeutronBG::InitHist() // initialize all the histograms declared in t
 
   h_clusterCharge = new TH1F("h_clusterCharge", "clusterCharge", 1000, 0, 1);
   h_beamFlag = new TH1F("h_beamFlag", "0=good, 1=off, 2=bad, 3=missing, -1=fill error", 5, -1, 4);
-  h_clusterTime = new TH1F("h_clusterTime", "clusterTime", 250, 0, 71000);
   h_clusterTime_beam = new TH1F("h_clusterTime_beam", "clusterTime for BEAM evts", 250, 0, 71000);
+  h_clusterTime_beamoff = new TH1F("h_clusterTime_beamoff", "clusterTime for BEAM off evts", 250, 0, 71000);
+
+  h_clusterTime = new TH1F("h_clusterTime", "clusterTime", 250, 0, 71000);
+  
+  h_beamoff_lt = new TH1F("h_beamoff_lt", "beam off live time", 3,0,3);
+  h_woext_lt = new TH1F("h_woext_lt", "without extended trigger live time",3,0,3);
+  h_cc_lt = new TH1F("h_cc_lt", "cc live time",3,0,3);
+  h_nc_lt = new TH1F("h_nc_lt", "nc live time",3,0,3);
+
+  h_totalpot = new TH1F("h_totalpot", "total POT", 3,0,3);
+
+
+  h_beamoff_pot = new TH1F("h_beamoff_pot", "beam off POT", 3,0,3);
+  h_woext_pot = new TH1F("h_woext_pot", "without extended trigger POT",3,0,3);
+  h_cc_pot = new TH1F("h_cc_pot", "cc POT",3,0,3);
+  h_nc_pot = new TH1F("h_nc_pot", "nc POT",3,0,3);
+  // h_clusterTime_beam = new TH1F("h_clusterTime_beam", "clusterTime for BEAM evts", 250, 0, 71000);
   h_clusterTime_prompt = new TH1F("h_clusterTime_prompt", "clusterTime for ALL PROMPT evts", 200, 0, 2100);
   h_clusterTime_delayed = new TH1F("h_clusterTime_delayed", "clusterTime for ALL DELAYED evts", 250, 0, 71000);
   h_clusterTime_nonCCbeam = new TH1F("h_clusterTime_nonCCbeam", "clusterTime for NON-CC BEAM evts", 250, 0, 71000);
+  h_clusterTime_nonCCbeamoff = new TH1F("h_clusterTime_nonCCbeamoff", "clusterTime for NON-CC BEAM-off evts", 250, 0, 71000);
+  
   h_clusterTime_nonCCbeam_prompt = new TH1F("h_clusterTime_nonCCbeam_prompt", "clusterTime for NON-CC BEAM evts - prompt", 200, 0, 2100);
+  h_clusterTime_nonCCbeamoff_prompt = new TH1F("h_clusterTime_nonCCbeamoff_prompt", "clusterTime for NON-CC BEAM off evts - prompt", 200, 0, 2100);
+
   h_clusterTime_nonCCbeam_prompt_noVeto = new TH1F("h_clusterTime_nonCCbeam_prompt_noVeto", "clusterTime for NON-CC BEAM evts w NO VETO - prompt", 200, 0, 2100);
   h_clusterTime_nonCCbeam_prompt_noVetoMRD = new TH1F("h_clusterTime_nonCCbeam_prompt_noVetoMRD", "clusterTime for NON-CC BEAM evts w NO VETO OR MRD - prompt", 200, 0, 2100);
   h_clusterTime_nonCCbeam_delayed = new TH1F("h_clusterTime_nonCCbeam_delayed", "clusterTime for NON-CC BEAM evts - delayed", 250, 0, 71000);
+  h_clusterTime_nonCCbeamoff_delayed = new TH1F("h_clusterTime_nonCCbeamoff_delayed", "clusterTime for NON-CC BEAM off evts - delayed", 250, 0, 71000);
+
   h_clusterTime_nonCCbeam_delayed_noVeto = new TH1F("h_clusterTime_nonCCbeam_delayed_noVeto", "clusterTime for NON-CC BEAM evts w NO VETO - delayed", 250, 0, 71000);
   h_clusterTime_nonCCbeam_delayed_noVetoMRD = new TH1F("h_clusterTime_nonCCbeam_delayed_noVetoMRD", "clusterTime for NON-CC BEAM evts w NO VETO OR MRD - delayed",250,0,71000);
   h_clusterTime_background_neutrons = new TH1F("h_clusterTime_background_neutrons", "Background neutrons cluster time",250,0,71000);
@@ -490,13 +583,21 @@ void PhaseIINeutronBG::InitHist() // initialize all the histograms declared in t
   h_clusterTime_prompt_hitPMT = new TH1F("h_clusterTime_prompt_hitPMT","Tube IDs for all cluster hits in prompt window",200,300,500);
   h_clusterPE = new TH1F("h_clusterPE", "clusterPE", 300, 0, 300);
   h_clusterPE_beam = new TH1F("h_clusterPE_beam", "clusterPE for BEAM evts", 300, 0, 300);
+  h_clusterPE_beamoff = new TH1F("h_clusterPE_beamoff", "clusterPE for BEAM off evts", 300, 0, 300);
+
   h_clusterPE_prompt = new TH1F("h_clusterPE_prompt", "clusterPE for ALL PROMPT evts", 300, 0, 300);
   h_clusterPE_delayed = new TH1F("h_clusterPE_delayed", "clusterPE for ALL DELAYED evts", 300, 0, 300);
   h_clusterPE_nonCCbeam = new TH1F("h_clusterPE_nonCCbeam", "clusterPE for NON-CC BEAM evts", 300, 0, 300);
+  h_clusterPE_nonCCbeamoff = new TH1F("h_clusterPE_nonCCbeamoff", "clusterPE for NON-CC BEAM-off evts", 300, 0, 300);
+
   h_clusterPE_nonCCbeam_prompt = new TH1F("h_clusterPE_nonCCbeam_prompt", "clusterPE for NON-CC BEAM evts - prompt", 300, 0, 300);
+  h_clusterPE_nonCCbeamoff_prompt = new TH1F("h_clusterPE_nonCCbeamoff_prompt", "clusterPE for NON-CC BEAM off evts - prompt", 300, 0, 300);
+
   h_clusterPE_nonCCbeam_prompt_noVeto = new TH1F("h_clusterPE_nonCCbeam_prompt_noVeto", "clusterPE for NON-CC BEAM evts w NO VETO - prompt", 300, 0, 300);
   h_clusterPE_nonCCbeam_prompt_noVetoMRD = new TH1F("h_clusterPE_nonCCbeam_prompt_noVetoMRD","clusterPE for NON-CC BEAM evts w NO VETO OR MRD - prompt", 300, 0, 300);
   h_clusterPE_nonCCbeam_delayed = new TH1F("h_clusterPE_nonCCbeam_delayed", "clusterPE for NON-CC BEAM evts - delayed", 300, 0, 300);
+  h_clusterPE_nonCCbeamoff_delayed = new TH1F("h_clusterPE_nonCCbeamoff_delayed", "clusterPE for NON-CC BEAM off evts - delayed", 300, 0, 300);
+
   h_clusterPE_nonCCbeam_delayed_noVeto = new TH1F("h_clusterPE_nonCCbeam_delayed_noVeto", "clusterPE for NON-CC BEAM evts w NO VETO - delayed", 300, 0, 300);
   h_clusterPE_nonCCbeam_delayed_noVetoMRD = new TH1F("h_clusterPE_nonCCbeam_delayed_noVetoMRD", "clusterPE for NON-CC BEAM evts w NO VETO OR MRD - delayed", 300, 0, 300);
   h_clusterPE_background_neutrons = new TH1F("h_clusterPE_background_neutrons","cluster PE for background neutrons",300,0,300);
@@ -525,15 +626,35 @@ void PhaseIINeutronBG::WriteHist()
 
   h_clusterCharge->Write();
   h_beamFlag->Write();
+  h_beamoff_lt->Write();
+  h_woext_lt->Write();
+  h_cc_lt->Write();
+  h_nc_lt->Write();
+
+  h_totalpot->Write();
+  h_beamoff_pot->Write();
+  h_woext_pot->Write();
+  h_cc_pot->Write();
+  h_nc_pot->Write();
+  
   h_clusterTime->Write();
+  h_clusterTime_beamoff->Write();
+
   h_clusterTime_beam->Write();
   h_clusterTime_prompt->Write();
   h_clusterTime_delayed->Write();
   h_clusterTime_nonCCbeam->Write();
+  h_clusterTime_nonCCbeamoff->Write();
+
+
   h_clusterTime_nonCCbeam_prompt->Write();
+  h_clusterTime_nonCCbeamoff_prompt->Write();
+
   h_clusterTime_nonCCbeam_prompt_noVeto->Write();
   h_clusterTime_nonCCbeam_prompt_noVetoMRD->Write();
   h_clusterTime_nonCCbeam_delayed->Write();
+  h_clusterTime_nonCCbeamoff_delayed->Write();
+
   h_clusterTime_nonCCbeam_delayed_noVeto->Write();
   h_clusterTime_nonCCbeam_delayed_noVetoMRD->Write();
   h_clusterTime_background_neutrons->Write();
@@ -541,14 +662,22 @@ void PhaseIINeutronBG::WriteHist()
   h_clusterTime_delayed_hitPMT->Write();
   h_clusterTime_prompt_hitPMT->Write();
   h_clusterPE->Write();
+  h_clusterPE_beamoff->Write();
+
   h_clusterPE_beam->Write();
   h_clusterPE_prompt->Write();
   h_clusterPE_delayed->Write();
   h_clusterPE_nonCCbeam->Write();
+  h_clusterPE_nonCCbeamoff->Write();
+
   h_clusterPE_nonCCbeam_prompt->Write();
+  h_clusterPE_nonCCbeamoff_prompt->Write();
+
   h_clusterPE_nonCCbeam_prompt_noVeto->Write();
   h_clusterPE_nonCCbeam_prompt_noVetoMRD->Write();
   h_clusterPE_nonCCbeam_delayed->Write();
+  h_clusterPE_nonCCbeamoff_delayed->Write();
+
   h_clusterPE_nonCCbeam_delayed_noVeto->Write();
   h_clusterPE_nonCCbeam_delayed_noVetoMRD->Write();
   h_clusterPE_background_neutrons->Write();
