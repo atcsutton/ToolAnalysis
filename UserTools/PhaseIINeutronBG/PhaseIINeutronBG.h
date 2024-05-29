@@ -157,6 +157,14 @@ class PhaseIINeutronBG: public Tool {
   TH1F *h_clusterCB_muons = nullptr;
   TH1F *h_clusterCB_muons_goodNonCC = nullptr;
 
+  TH1F *h_clusterCB_beamoff_michel = nullptr;
+  TH1F *h_clusterCB_michel_goodNonCC_beamoff = nullptr;
+  TH1F *h_clusterCB_afterpulse_beamoff = nullptr;
+  TH1F *h_clusterCB_afterpulse_goodNonCC_beamoff = nullptr;
+  TH1F *h_clusterCB_neutrons_beamoff = nullptr;
+  TH1F *h_clusterCB_neutrons_goodNonCC_beamoff = nullptr;
+  TH1F *h_clusterCB_muons_beamoff = nullptr;
+  TH1F *h_clusterCB_muons_goodNonCC_beamoff = nullptr;
 
 
   // ROOT trees

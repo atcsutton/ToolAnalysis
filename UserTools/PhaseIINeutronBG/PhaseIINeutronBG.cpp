@@ -413,7 +413,7 @@ bool PhaseIINeutronBG::Execute(){
 		    h_clusterTime_nonCCbeam_delayed_noVetoMRD->Fill(cluster_time);
 		    h_clusterPE_nonCCbeam_delayed_noVetoMRD->Fill(cluster_PE);
                 
-		    if (BeamOn == 1 && cluster_time > 13000.0 && fClusterCharge < 120 && fClusterChargeBalance < 0.4)
+		    if (BeamOn == 1 && cluster_time > 10000.0 && fClusterCharge < 120 && fClusterChargeBalance < 0.4)
 		      {
 			std::cout << "MADE IT HERE" << std::endl; // Debugging message
 			h_clusterTime_background_neutrons->Fill(cluster_time);
@@ -425,27 +425,37 @@ bool PhaseIINeutronBG::Execute(){
       }
      
    
- /*   if (cluster_time > 2000. && cluster_time < 4000.) //looking at different possible regions of interest, commented out bc wasn't needed but I left it in case it would be useful in the future. can probs just be deleted.
+    if (cluster_time > 2000. && cluster_time < 4000.) //looking at different possible regions of interest, commented out bc wasn't needed but I left it in case it would be useful in the future. can probs just be deleted.
     {
-	if ((isBeam && BeamOn==1) || (beamflag==1 && BeamOn == 0 && isLED)) {h_clusterCB_michel->Fill(fClusterChargeBalance);}
-        if (((isBeam && BeamOn==1) || (beamflag==1 && BeamOn == 0 && isLED)) && isNonCC && !hasVeto && !hasMRDTracks) {h_clusterCB_michel_goodNonCC->Fill(fClusterChargeBalance);}
+	if (isBeam && BeamOn==1) {h_clusterCB_michel->Fill(fClusterChargeBalance);}
+	if (beamflag==1 && BeamOn == 0 && isLED) {h_clusterCB_beamoff_michel->Fill(fClusterChargeBalance);}
+        if ((isBeam && BeamOn==1) && isNonCC && !hasVeto && !hasMRDTracks) {h_clusterCB_michel_goodNonCC->Fill(fClusterChargeBalance);}
+        if ((beamflag==1 && BeamOn == 0 && isLED) && isNonCC && !hasVeto && !hasMRDTracks) {h_clusterCB_michel_goodNonCC_beamoff->Fill(fClusterChargeBalance);}
+
     }
 
     if (cluster_time >= 4000. && cluster_time < 12000. && fpot==0){
-	if ((isBeam && BeamOn==1) || (beamflag==1 && BeamOn == 0)) {h_clusterCB_afterpulse->Fill(fClusterChargeBalance);}
-	if (((isBeam && BeamOn==1) || (beamflag==1 && BeamOn == 0)) && isNonCC && !hasVeto && !hasMRDTracks) {h_clusterCB_afterpulse_goodNonCC->Fill(fClusterChargeBalance);}
+	if (isBeam && BeamOn==1) {h_clusterCB_afterpulse->Fill(fClusterChargeBalance);}
+	if ((isBeam && BeamOn==1) && isNonCC && !hasVeto && !hasMRDTracks) {h_clusterCB_afterpulse_goodNonCC->Fill(fClusterChargeBalance);}
+	if (beamflag==1 && BeamOn == 0) {h_clusterCB_afterpulse_beamoff->Fill(fClusterChargeBalance);}
+        if ((beamflag==1 && BeamOn == 0) && isNonCC && !hasVeto && !hasMRDTracks) {h_clusterCB_afterpulse_goodNonCC_beamoff->Fill(fClusterChargeBalance);}
     }
 
     if (cluster_time >= 12000. && cluster_time < 50000. && fpot==0){
-	if ((isBeam && BeamOn==1) || (beamflag==1 && BeamOn == 0)) {h_clusterCB_neutrons->Fill(fClusterChargeBalance);}
-	if (((isBeam && BeamOn==1) || (beamflag==1 && BeamOn == 0)) && isNonCC && !hasVeto && !hasMRDTracks) {h_clusterCB_neutrons_goodNonCC->Fill(fClusterChargeBalance);}
+	if (isBeam && BeamOn==1) {h_clusterCB_neutrons->Fill(fClusterChargeBalance);}
+	if ((isBeam && BeamOn==1) && isNonCC && !hasVeto && !hasMRDTracks) {h_clusterCB_neutrons_goodNonCC->Fill(fClusterChargeBalance);}
+	if (beamflag==1 && BeamOn == 0) {h_clusterCB_neutrons_beamoff->Fill(fClusterChargeBalance);}
+        if ((beamflag==1 && BeamOn == 0) && isNonCC && !hasVeto && !hasMRDTracks) {h_clusterCB_neutrons_goodNonCC_beamoff->Fill(fClusterChargeBalance);}
+
     }
 
     if (cluster_time >= 50000. && fpot==0)
     {
-	if ((isBeam && BeamOn==1) || (beamflag==1 && BeamOn == 0)) {h_clusterCB_muons->Fill(fClusterChargeBalance);}
-	if (((isBeam && BeamOn==1) || (beamflag==1 && BeamOn == 0)) && isNonCC && !hasVeto && !hasMRDTracks) {h_clusterCB_muons_goodNonCC->Fill(fClusterChargeBalance);}
-    }*/
+	if (isBeam && BeamOn==1) {h_clusterCB_muons->Fill(fClusterChargeBalance);}
+	if ((isBeam && BeamOn==1) && isNonCC && !hasVeto && !hasMRDTracks) {h_clusterCB_muons_goodNonCC->Fill(fClusterChargeBalance);}
+	if (beamflag==1 && BeamOn == 0) {h_clusterCB_muons_beamoff->Fill(fClusterChargeBalance);}
+        if ((beamflag==1 && BeamOn == 0) && isNonCC && !hasVeto && !hasMRDTracks) {h_clusterCB_muons_goodNonCC_beamoff->Fill(fClusterChargeBalance);}
+    }
 
     t_TankCluster->Fill();
     n_cluster += 1;
@@ -609,6 +619,15 @@ void PhaseIINeutronBG::InitHist() // initialize all the histograms declared in t
   h_clusterCB_neutrons_goodNonCC = new TH1F("h_clusterCB_neutrons_goodNonCC","",100,0,1);
   h_clusterCB_muons = new TH1F("h_clusterCB_muons","",100,0,1);
   h_clusterCB_muons_goodNonCC = new TH1F("h_clusterCB_muons_goodNonCC","",100,0,1);
+  
+  h_clusterCB_beamoff_michel = new TH1F("h_clusterCB_beamoff_michel","",100,0,1);
+  h_clusterCB_michel_goodNonCC_beamoff = new TH1F("h_clusterCB_michel_goodNonCC_beamoff","",100,0,1);
+  h_clusterCB_afterpulse_beamoff = new TH1F("h_clusterCB_afterpulse_beamoff","",100,0,1);
+  h_clusterCB_afterpulse_goodNonCC_beamoff = new TH1F("h_clusterCB_afterpulse_goodNonCC_beamoff","",100,0,1);
+  h_clusterCB_neutrons_beamoff = new TH1F("h_clusterCB_neutrons_beamoff","",100,0,1);
+  h_clusterCB_neutrons_goodNonCC_beamoff = new TH1F("h_clusterCB_neutrons_goodNonCC_beamoff","",100,0,1);
+  h_clusterCB_muons_beamoff = new TH1F("h_clusterCB_muons_beamoff","",100,0,1);
+  h_clusterCB_muons_goodNonCC_beamoff = new TH1F("h_clusterCB_muons_goodNonCC_beamoff","",100,0,1);
 
   gROOT->cd();
 }
@@ -690,6 +709,14 @@ void PhaseIINeutronBG::WriteHist()
   h_clusterCB_muons->Write();
   h_clusterCB_muons_goodNonCC->Write();
 
+  h_clusterCB_beamoff_michel->Write();
+  h_clusterCB_michel_goodNonCC_beamoff->Write();
+  h_clusterCB_afterpulse_beamoff->Write();
+  h_clusterCB_afterpulse_goodNonCC_beamoff->Write();
+  h_clusterCB_neutrons_beamoff->Write();
+  h_clusterCB_neutrons_goodNonCC_beamoff->Write();
+  h_clusterCB_muons_beamoff->Write();
+  h_clusterCB_muons_goodNonCC_beamoff->Write();  
 
   gROOT->cd();
 }
