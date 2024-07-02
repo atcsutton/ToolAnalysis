@@ -19,6 +19,15 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
   m_data= &data; //assigning transient data pointer
   /////////////////////////////////////////////////////////////////
 
+
+  ClusterToBestParticleID  = new std::map<double, int>;
+  ClusterToBestParticlePDG = new std::map<double, int>;
+  ClusterEfficiency        = new std::map<double, double>;
+  ClusterPurity            = new std::map<double, double>;
+  ClusterTotalCharge       = new std::map<double, double>;
+  ClusterNeutronCharge     = new std::map<double, double>;
+
+  
   return true;
 }
 
@@ -27,21 +36,16 @@ bool BackTracker::Execute()
 {
   if (!LoadFromStores())
     return false;
+
+  ClusterToBestParticleID ->clear();
+  ClusterToBestParticlePDG->clear();
+  ClusterEfficiency       ->clear();
+  ClusterPurity           ->clear();
+  ClusterTotalCharge      ->clear();
+  ClusterNeutronCharge    ->clear();
+
   
   // Loop over the clusters and do the things
-  // We'll save out maps between the local cluster time and
-  //   the ID and PDG of the particle that contributed the most energy
-  //   the efficiency of capturing all light from the best matched particle in that cluster
-  //   the the purity based on the best matched particle
-  //   the total deposited charge in the cluster
-  //   the ammount of cluster charge due to neutrons
-  std::map<double, int>    ClusterToBestParticleID;
-  std::map<double, int>    ClusterToBestParticlePDG; 
-  std::map<double, double> ClusterEfficiency;
-  std::map<double, double> ClusterPurity;
-  std::map<double, double> ClusterTotalCharge;
-  std::map<double, double> ClusterNeutronCharge;
-
   for (std::pair<double, std::vector<MCHit>>&& apair : *ClusterMapMC) {
     int prtId = -5;
     int prtPdg = -5;
@@ -52,12 +56,12 @@ bool BackTracker::Execute()
 
     MatchMCParticle(apair.second, prtId, prtPdg, eff, pur, totalCharge, neutronCharge);
 
-    ClusterToBestParticleID .emplace(apair.first, prtId);
-    ClusterToBestParticlePDG.emplace(apair.first, prtPdg);
-    ClusterEfficiency       .emplace(apair.first, eff);
-    ClusterPurity           .emplace(apair.first, pur);
-    ClusterTotalCharge      .emplace(apair.first, totalCharge);
-    ClusterNeutronCharge    .emplace(apair.first, neutronCharge);
+    ClusterToBestParticleID ->emplace(apair.first, prtId);
+    ClusterToBestParticlePDG->emplace(apair.first, prtPdg);
+    ClusterEfficiency       ->emplace(apair.first, eff);
+    ClusterPurity           ->emplace(apair.first, pur);
+    ClusterTotalCharge      ->emplace(apair.first, totalCharge);
+    ClusterNeutronCharge    ->emplace(apair.first, neutronCharge);
   }
 
   m_data->Stores.at("ANNIEEvent")->Set("ClusterToBestParticleID",  ClusterToBestParticleID );

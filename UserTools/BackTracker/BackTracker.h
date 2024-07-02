@@ -39,6 +39,20 @@ class BackTracker: public Tool {
   std::map<int, double>*                          ParticleToTankCharge = nullptr; ///< Map between the particle Id and the total charge that it deposited on all tubes
   std::vector<MCParticle>*                        MCParticles = nullptr;          ///< The true particles from the event
   std::map<int, int>*                             MCParticleIndexMap = nullptr;   ///< Map between the particle Id and it's position in MCParticles vector
+
+  // We'll save out maps between the local cluster time and
+  //   the ID and PDG of the particle that contributed the most energy
+  //   the efficiency of capturing all light from the best matched particle in that cluster
+  //   the the purity based on the best matched particle
+  //   the total deposited charge in the cluster
+  //   the ammount of cluster charge due to neutrons
+  std::map<double, int>    *ClusterToBestParticleID  = nullptr;
+  std::map<double, int>    *ClusterToBestParticlePDG = nullptr; 
+  std::map<double, double> *ClusterEfficiency        = nullptr;
+  std::map<double, double> *ClusterPurity            = nullptr;
+  std::map<double, double> *ClusterTotalCharge       = nullptr;
+  std::map<double, double> *ClusterNeutronCharge     = nullptr;
+
 };
 
 
