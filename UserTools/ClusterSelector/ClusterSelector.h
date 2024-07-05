@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "Tool.h"
+#include "Hit.h"
 
 
 /**

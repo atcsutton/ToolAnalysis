@@ -56,9 +56,10 @@ bool ClusterSelector::Initialise(std::string configfile, DataModel &data)
     return false;
   }
 
+  // Set up the pointers we're going to save. No need to 
+  // delete them at Finalize, the store will handle it
   fClusterMapOut   = new std::map<double, std::vector<Hit>>;
   fClusterMapOutMC = new std::map<double, std::vector<MCHit>>;
-
 
   return true;
 }

@@ -57,9 +57,13 @@ bool TimeGridVertex::Initialise(std::string configfile, DataModel &data)
   fNY = int(fGeom->GetPMTEnclosedHalfheight()*2 / fInitialSpacing);
   fNZ = int(fGeom->GetPMTEnclosedRadius()*2 / fInitialSpacing);
 
-  std::cout << "TimeGridVertex: Number of nodes (X, Y, Z): (" << fNX << ", " << fNY << ", " << fNZ << ")" << std::endl;
+  logmessage = "TimeGridVertex: Number of nodes (X, Y, Z): (" + std::to_string(fNX);
+  logmessage += ", " + std::to_string(fNY) + ", " + std::to_string(fNZ) + ")";
+  Log(logmessage, v_error, verbosity);
 
-  fClusterToVertexMap = new std::map<double, Position>;
+  // Set up the pointer we're going to save. No need to 
+  // delete it at Finalize, the store will handle it
+  fVertexMap = new std::map<double, Position>;
   
   return true;
 }
@@ -67,8 +71,7 @@ bool TimeGridVertex::Initialise(std::string configfile, DataModel &data)
 //------------------------------------------------------------------------------
 bool TimeGridVertex::Execute()
 {
-  fClusterToVertexMap->clear();
-    
+  fVertexMap->clear();
   if (fUseMCHits) {
     bool gotClusters = m_data->Stores.at("ANNIEEvent")->Get(fClusterMapName, fClusterMapMC);
     if (!gotClusters) {
@@ -76,7 +79,6 @@ bool TimeGridVertex::Execute()
       Log(logmessage, v_error, verbosity);
       return false;
     }
-
     RunLoopMC();
   } else {
     bool gotClusters = m_data->Stores.at("ANNIEEvent")->Get(fClusterMapName, fClusterMap);
@@ -89,7 +91,7 @@ bool TimeGridVertex::Execute()
     RunLoop();
   }
   
-  m_data->Stores.at("ANNIEEvent")->Set("ClusterToVertex",  fClusterToVertexMap);
+  m_data->Stores.at("ANNIEEvent")->Set("TimeGridVertexMap",  fVertexMap);
   
   return true;
 }
@@ -260,7 +262,7 @@ void TimeGridVertex::RunLoop()
     Log(logmessage, v_debug, verbosity);
 
     
-    fClusterToVertexMap->emplace(clusterpair.first, bestVertex);
+    fVertexMap->emplace(clusterpair.first, bestVertex);
   }
 }
 
@@ -307,6 +309,6 @@ void TimeGridVertex::RunLoopMC()
 		  ") with RMS: " + std::to_string(tRMS));
     Log(logmessage, v_debug, verbosity);
         
-    fClusterToVertexMap->emplace(clusterpair.first, bestVertex);
+    fVertexMap->emplace(clusterpair.first, bestVertex);
   }
 }

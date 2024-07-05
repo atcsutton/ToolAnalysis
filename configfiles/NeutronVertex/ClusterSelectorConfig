@@ -1,4 +1,4 @@
-verbosity 0
+verbosity 10
 ClusterMapName NeutronClusters # Output name of cluster map in ANNIE Event
 UseMCHits 1 # Does the cluster map contain Hits or MCHits?
 MaxClusterCharge 120

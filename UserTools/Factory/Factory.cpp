@@ -169,5 +169,7 @@ if (tool=="SaveConfigInfo") ret=new SaveConfigInfo;
 if (tool=="ReadConfigInfo") ret=new ReadConfigInfo;
 if (tool=="TimeGridVertex") ret=new TimeGridVertex;
 if (tool=="ClusterSelector") ret=new ClusterSelector;
+if (tool=="BackTracker") ret=new BackTracker;
+if (tool=="EvaluateVertex") ret=new EvaluateVertex;
 return ret;
 }

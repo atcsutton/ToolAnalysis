@@ -6,6 +6,7 @@
 
 #include "Tool.h"
 #include "Position.h"
+#include "Hit.h"
 
 
 /**
@@ -54,7 +55,7 @@ class TimeGridVertex: public Tool {
   std::map<double, std::vector<MCHit>> *fClusterMapMC = nullptr;
 
   // Vertices we'll save to the ANNIEEvent
-  std::map<double, Position> *fClusterToVertexMap = nullptr;
+  std::map<double, Position> *fVertexMap = nullptr;
       
   // The number of nodes in each dimension. These are calculated on the fly from the initial spacing
   int fNX;
