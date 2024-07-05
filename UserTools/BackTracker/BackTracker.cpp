@@ -19,14 +19,23 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
   m_data= &data; //assigning transient data pointer
   /////////////////////////////////////////////////////////////////
 
+  // Load my config parameters
+  bool gotVerbosity = m_variables.Get("verbosity",verbosity);
+  if (!gotVerbosity) {
+    verbosity = 0;
+    logmessage = "BackTracker::Initialize: \"verbosity\" not set in the config, defaulting to 0";
+    Log(logmessage, v_error, verbosity);
+  }
 
-  ClusterToBestParticleID  = new std::map<double, int>;
-  ClusterToBestParticlePDG = new std::map<double, int>;
-  ClusterEfficiency        = new std::map<double, double>;
-  ClusterPurity            = new std::map<double, double>;
-  ClusterTotalCharge       = new std::map<double, double>;
-  ClusterNeutronCharge     = new std::map<double, double>;
 
+  // Set up the pointers we're going to save. No need to 
+  // delete them at Finalize, the store will handle it
+  fClusterToBestParticleID  = new std::map<double, int>;
+  fClusterToBestParticlePDG = new std::map<double, int>;
+  fClusterEfficiency        = new std::map<double, double>;
+  fClusterPurity            = new std::map<double, double>;
+  fClusterTotalCharge       = new std::map<double, double>;
+  fClusterNeutronCharge     = new std::map<double, double>;
   
   return true;
 }
@@ -37,16 +46,19 @@ bool BackTracker::Execute()
   if (!LoadFromStores())
     return false;
 
-  ClusterToBestParticleID ->clear();
-  ClusterToBestParticlePDG->clear();
-  ClusterEfficiency       ->clear();
-  ClusterPurity           ->clear();
-  ClusterTotalCharge      ->clear();
-  ClusterNeutronCharge    ->clear();
+  fClusterToBestParticleID ->clear();
+  fClusterToBestParticlePDG->clear();
+  fClusterEfficiency       ->clear();
+  fClusterPurity           ->clear();
+  fClusterTotalCharge      ->clear();
+  fClusterNeutronCharge    ->clear();
+
+  fParticleToTankTotalCharge.clear();
+  SumParticleTankCharge();
 
   
   // Loop over the clusters and do the things
-  for (std::pair<double, std::vector<MCHit>>&& apair : *ClusterMapMC) {
+  for (std::pair<double, std::vector<MCHit>>&& apair : *fClusterMapMC) {
     int prtId = -5;
     int prtPdg = -5;
     double eff = -5;
@@ -56,20 +68,20 @@ bool BackTracker::Execute()
 
     MatchMCParticle(apair.second, prtId, prtPdg, eff, pur, totalCharge, neutronCharge);
 
-    ClusterToBestParticleID ->emplace(apair.first, prtId);
-    ClusterToBestParticlePDG->emplace(apair.first, prtPdg);
-    ClusterEfficiency       ->emplace(apair.first, eff);
-    ClusterPurity           ->emplace(apair.first, pur);
-    ClusterTotalCharge      ->emplace(apair.first, totalCharge);
-    ClusterNeutronCharge    ->emplace(apair.first, neutronCharge);
+    fClusterToBestParticleID ->emplace(apair.first, prtId);
+    fClusterToBestParticlePDG->emplace(apair.first, prtPdg);
+    fClusterEfficiency       ->emplace(apair.first, eff);
+    fClusterPurity           ->emplace(apair.first, pur);
+    fClusterTotalCharge      ->emplace(apair.first, totalCharge);
+    fClusterNeutronCharge    ->emplace(apair.first, neutronCharge);
   }
 
-  m_data->Stores.at("ANNIEEvent")->Set("ClusterToBestParticleID",  ClusterToBestParticleID );
-  m_data->Stores.at("ANNIEEvent")->Set("ClusterToBestParticlePDG", ClusterToBestParticlePDG);
-  m_data->Stores.at("ANNIEEvent")->Set("ClusterEfficiency",        ClusterEfficiency       );
-  m_data->Stores.at("ANNIEEvent")->Set("ClusterPurity",            ClusterPurity           );
-  m_data->Stores.at("ANNIEEvent")->Set("ClusterTotalCharge",       ClusterTotalCharge      );
-  m_data->Stores.at("ANNIEEvent")->Set("ClusterNeutronCharge",     ClusterNeutronCharge    );
+  m_data->Stores.at("ANNIEEvent")->Set("ClusterToBestParticleID",  fClusterToBestParticleID );
+  m_data->Stores.at("ANNIEEvent")->Set("ClusterToBestParticlePDG", fClusterToBestParticlePDG);
+  m_data->Stores.at("ANNIEEvent")->Set("ClusterEfficiency",        fClusterEfficiency       );
+  m_data->Stores.at("ANNIEEvent")->Set("ClusterPurity",            fClusterPurity           );
+  m_data->Stores.at("ANNIEEvent")->Set("ClusterTotalCharge",       fClusterTotalCharge      );
+  m_data->Stores.at("ANNIEEvent")->Set("ClusterNeutronCharge",     fClusterNeutronCharge    );
 
   return true;
 }
@@ -82,10 +94,108 @@ bool BackTracker::Finalise()
 }
 
 //------------------------------------------------------------------------------
+void BackTracker::SumParticleTankCharge()
+{
+  for (auto mcHitsIt : *fMCHitsMap) {
+    std::vector<MCHit> mcHits = mcHitsIt.second;
+    for (uint mcHitIdx = 0; mcHitIdx < mcHits.size(); ++mcHitIdx) {
+
+      // technically a MCHit could have multiple parents, but they don't appear to in practice
+      // skip any cases we come across
+      std::vector<int> parentIdxs = *(mcHits[mcHitIdx].GetParents());
+      if (parentIdxs.size() != 1) continue;
+      
+      int particleId = -5;
+      for (auto it : *fMCParticleIndexMap) {
+	if (it.second == parentIdxs[0]) particleId = it.first;
+      }
+      if (particleId == -5) continue;
+	
+      double depositedCharge = mcHits[mcHitIdx].GetCharge();      
+      if (!fParticleToTankTotalCharge.count(particleId)) 
+	fParticleToTankTotalCharge.emplace(particleId, depositedCharge);
+      else 
+	fParticleToTankTotalCharge.at(particleId) += depositedCharge;
+    }    
+  }
+}
+
+//------------------------------------------------------------------------------
+void BackTracker::MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, int &prtPdg, double &eff, double &pur, double &totalCharge, double &neutronCharge)
+{
+  // Loop over the hits and get all of their parents and the energy that each one contributed
+  //  be sure to bunch up all neutronic contributions
+  std::map<int, double> mapParticleToTotalClusterCharge;
+  totalCharge = 0;
+  neutronCharge = 0;
+
+  for (auto mchit : mchits) {    
+    std::vector<int> parentIdxs = *(mchit.GetParents());
+    if (parentIdxs.size() != 1) {
+      logmessage = "BackTracker::MatchMCParticle: this MCHit has ";
+      logmessage += std::to_string(parentIdxs.size()) + " parents!";
+      Log(logmessage, v_debug, verbosity);
+      continue;
+    }
+    
+    int particleId = -5;
+    for (auto it : *fMCParticleIndexMap) {
+      if (it.second == parentIdxs[0]) particleId = it.first;
+    }
+    if (particleId == -5) continue;
+    
+    double depositedCharge = mchit.GetCharge();
+    totalCharge += depositedCharge;
+    
+    if (mapParticleToTotalClusterCharge.count(particleId) == 0) 
+      mapParticleToTotalClusterCharge.emplace(particleId, depositedCharge);
+    else
+      mapParticleToTotalClusterCharge[particleId] += depositedCharge;
+    
+    auto tempParticle = fMCParticles->at(parentIdxs[0]);
+    if (tempParticle.GetParentPdg() == 2112) 
+      neutronCharge += depositedCharge;
+  }     
+  
+
+  // Loop over the particleIds to find the primary contributer to the cluster
+  double maxCharge = 0;
+  for (auto apair : mapParticleToTotalClusterCharge) {
+    if (apair.second > maxCharge) {
+      maxCharge = apair.second;
+      prtId = apair.first;
+    }
+  }
+
+
+  // Check that we have some charge, if not then something is wrong so pass back all -5
+  if (totalCharge > 0) {
+    eff = maxCharge/fParticleToTankTotalCharge.at(prtId);
+    pur = maxCharge/totalCharge;
+    prtPdg = (fMCParticles->at(fMCParticleIndexMap->at(prtId))).GetPdgCode();
+  } else {
+    prtId = -5;
+    eff = -5;
+    pur = -5;
+    totalCharge = -5;
+    neutronCharge = -5;
+  }
+
+  logmessage = "BackTracker::MatchMCParticle: best particleId is : ";
+  logmessage += std::to_string(prtId) + " which has PDG: " + std::to_string(prtPdg);
+  Log(logmessage, v_message, verbosity);
+
+  if (neutronCharge > totalCharge/2. && prtPdg != 2112 ) {
+      logmessage = "BackTracker::MatchMCParticle: best should have been a neutron!";
+      Log(logmessage, v_warning, verbosity);
+  }
+}
+
+//------------------------------------------------------------------------------
 bool BackTracker::LoadFromStores()
 {
   // Grab the stuff we need from the stores
-  bool goodMCClusters = m_data->CStore.Get("ClusterMapMC", ClusterMapMC);
+  bool goodMCClusters = m_data->CStore.Get("ClusterMapMC", fClusterMapMC);
   if (!goodMCClusters) {
     std::cerr<<"BackTracker: no ClusterMapMC in the CStore!"<<endl;
     return false;
@@ -97,25 +207,19 @@ bool BackTracker::LoadFromStores()
     return false;
   }
     
-  bool goodParticleTankTubeMap = m_data->Stores.at("ANNIEEvent")->Get("ParticleId_to_TankTubeIds", ParticleToTankTube);
-  if (!goodParticleTankTubeMap) {
-    std::cerr<<"BackTracker: no ParticleId_to_TankTubeIds in the ANNIEEvent!"<<endl;
-    return false;
-  }
-
-  bool goodParticleTankChargeMap = m_data->Stores.at("ANNIEEvent")->Get("ParticleId_to_TankCharge", ParticleToTankCharge);
-  if (!goodParticleTankChargeMap) {
-    std::cerr<<"BackTracker: no ParticleId_to_TankCharge in the ANNIEEvent!"<<endl;
+  bool goodMCHits = m_data->Stores.at("ANNIEEvent")->Get("MCHits", fMCHitsMap);
+  if (!goodMCHits) {
+    std::cerr<<"BackTracker: no MCHits in the ANNIEEvent!"<<endl;
     return false;
   }
   
-  bool goodMCParticles = m_data->Stores.at("ANNIEEvent")->Get("MCParticles", MCParticles);
+  bool goodMCParticles = m_data->Stores.at("ANNIEEvent")->Get("MCParticles", fMCParticles);
   if (!goodMCParticles) {
     std::cerr<<"BackTracker: no MCParticles in the ANNIEEvent!"<<endl;
     return false;
   }
 
-  bool goodMCParticleIndexMap = m_data->Stores.at("ANNIEEvent")->Get("TrackId_to_MCParticleIndex", MCParticles);
+  bool goodMCParticleIndexMap = m_data->Stores.at("ANNIEEvent")->Get("TrackId_to_MCParticleIndex", fMCParticleIndexMap);
   if (!goodMCParticleIndexMap) {
     std::cerr<<"BackTracker: no TrackId_to_MCParticleIndex in the ANNIEEvent!"<<endl;
     return false;
@@ -124,51 +228,3 @@ bool BackTracker::LoadFromStores()
   return true;
 }
 
-//------------------------------------------------------------------------------
-void BackTracker::MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, int &prtPdg, double &eff, double &pur, double &totalCharge, double &neutronCharge)
-{
-  // Loop over the hits and get all of their parents and the energy that each one contributed
-  //  be sure to bunch up all neutronic contributions
-  std::map<int, double> map_ParticleId_TotalClusterCharge;
-  totalCharge = 0;
-  neutronCharge = 0;  
-  for (auto mchit : mchits) {
-    unsigned long tubeId = mchit.GetTubeId();
-    for (auto particleId : *mchit.GetParents()) {
-      double depositedCharge = ParticleToTankTube->at(particleId).at(tubeId);
-      totalCharge += depositedCharge;
-
-      if (map_ParticleId_TotalClusterCharge.count(particleId) == 0) 
-	map_ParticleId_TotalClusterCharge.emplace(particleId, depositedCharge);
-      else
-	map_ParticleId_TotalClusterCharge[particleId] += depositedCharge;
-
-      auto tempParticle = MCParticles->at(MCParticleIndexMap->at(particleId));
-      if (tempParticle.GetParentPdg() == 2112) 
-	neutronCharge += depositedCharge;
-    }
-  }
-
-  // Loop over the particleIds to find the primary contributer to the cluster
-  double maxCharge = 0;
-  for (auto apair : map_ParticleId_TotalClusterCharge) {
-    if (apair.second > maxCharge) {
-      maxCharge = apair.second;
-      prtId = apair.first;
-    }
-  }
-
-
-  // Check that we have some charge, if not then something is wrong so pass back all -5
-  if (totalCharge > 0) {
-    eff = maxCharge/ParticleToTankCharge->at(prtId);
-    pur = maxCharge/totalCharge;
-    prtPdg = (MCParticles->at(MCParticleIndexMap->at(prtId))).GetPdgCode();
-  } else {
-    prtId = -5;
-    eff = -5;
-    pur = -5;
-    totalCharge = -5;
-    neutronCharge = -5;
-  }
-}

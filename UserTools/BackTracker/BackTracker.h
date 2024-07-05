@@ -29,29 +29,42 @@ class BackTracker: public Tool {
   bool Finalise(); ///< Finalise function used to clean up resources.
 
   bool LoadFromStores(); ///< Does all the loading so I can move it away from the Execute function
+  void SumParticleTankCharge();
   void MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, int &prtPdg, double &eff, double &pur, double &totalCharge, double &neutronCharge); ///< The meat and potatoes
   
  private:
 
   // Things we need to pull out of the store
-  std::map<double, std::vector<MCHit>>*           ClusterMapMC = nullptr;         ///< Clusters that we will be linking MCParticles to
-  std::map<int, std::map<unsigned long, double>>* ParticleToTankTube = nullptr;   ///< Map between the particle Id and the charge deposited on a given tube
-  std::map<int, double>*                          ParticleToTankCharge = nullptr; ///< Map between the particle Id and the total charge that it deposited on all tubes
-  std::vector<MCParticle>*                        MCParticles = nullptr;          ///< The true particles from the event
-  std::map<int, int>*                             MCParticleIndexMap = nullptr;   ///< Map between the particle Id and it's position in MCParticles vector
+  std::map<unsigned long, std::vector<MCHit>> *fMCHitsMap = nullptr;          ///< All of the MCHits keyed by channel number
+  std::map<double, std::vector<MCHit>>        *fClusterMapMC = nullptr;       ///< Clusters that we will be linking MCParticles to
+  std::vector<MCParticle>                     *fMCParticles = nullptr;        ///< The true particles from the event
+  std::map<int, int>                          *fMCParticleIndexMap = nullptr; ///< Map between the particle Id and it's position in MCParticles vector
 
+  // We'll calculate this map from MCHit parent particle to the total charge deposited throughout the tank
+  // technically a MCHit could have multiple parents, but they don't appear to in practice
+  // the key is particle Id and value is total tank charge
+  std::map<int, double> fParticleToTankTotalCharge; 
+    
   // We'll save out maps between the local cluster time and
   //   the ID and PDG of the particle that contributed the most energy
   //   the efficiency of capturing all light from the best matched particle in that cluster
   //   the the purity based on the best matched particle
   //   the total deposited charge in the cluster
   //   the ammount of cluster charge due to neutrons
-  std::map<double, int>    *ClusterToBestParticleID  = nullptr;
-  std::map<double, int>    *ClusterToBestParticlePDG = nullptr; 
-  std::map<double, double> *ClusterEfficiency        = nullptr;
-  std::map<double, double> *ClusterPurity            = nullptr;
-  std::map<double, double> *ClusterTotalCharge       = nullptr;
-  std::map<double, double> *ClusterNeutronCharge     = nullptr;
+  std::map<double, int>    *fClusterToBestParticleID  = nullptr;
+  std::map<double, int>    *fClusterToBestParticlePDG = nullptr; 
+  std::map<double, double> *fClusterEfficiency        = nullptr;
+  std::map<double, double> *fClusterPurity            = nullptr;
+  std::map<double, double> *fClusterTotalCharge       = nullptr;
+  std::map<double, double> *fClusterNeutronCharge     = nullptr;
+
+  /// \brief verbosity levels: if 'verbosity' < this level, the message type will be logged.
+  int verbosity;
+  int v_error=0;
+  int v_warning=1;
+  int v_message=2;
+  int v_debug=3;
+  std::string logmessage;
 
 };
 
