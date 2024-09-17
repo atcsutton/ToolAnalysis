@@ -1,0 +1,9 @@
+verbosity 1
+ClusterMapName NeutronClusters
+VertexMapName TimeGridVertexMap
+minQ = 90.0;	
+maxQ = 150.0;
+minCB = 0.2;
+maxCB = 0.5;
+chargeStepSize = 10.0;
+cbStepSize = 0.1;
