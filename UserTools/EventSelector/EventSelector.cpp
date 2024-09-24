@@ -14,7 +14,7 @@ bool EventSelector::Initialise(std::string configfile, DataModel &data){
 
   fPMTMRDOffset = false;
   fIsMC = true;
-  fPMTMRDOffset = 745;
+  fPMTMRDOffset = 755;
   fRecoPDG = -1;
 
   //Get the tool configuration variables
@@ -695,8 +695,15 @@ bool EventSelector::EventSelectionByPMTMRDCoinc() {
         for (unsigned int i_hit = 0; i_hit < Hits.size(); i_hit++){
           time_temp+=Hits.at(i_hit).GetTime();
           int tube = Hits.at(i_hit).GetTubeId();
-          double charge_pe = Hits.at(i_hit).GetCharge()/ChannelNumToTankPMTSPEChargeMap->at(tube);
-          charge_temp+=charge_pe;
+          // check if PMT is present in the map before accessing it
+	  auto it = ChannelNumToTankPMTSPEChargeMap->find(tube);
+	  if (it != ChannelNumToTankPMTSPEChargeMap->end()) {
+	  	double charge_pe = Hits.at(i_hit).GetCharge() / it->second;
+	  	charge_temp += charge_pe;
+	  } else {
+	  	std::cerr << "PMT channel with hit not found in ChannelNumToTankPMTSPEChargeMap. Skipping this hit." << std::endl;
+	  	continue;
+	  }
         }
         if (Hits.size()>0) time_temp/=Hits.size();
         vec_pmtclusters_charge->push_back(charge_temp);
@@ -769,7 +776,7 @@ bool EventSelector::EventSelectionByPMTMRDCoinc() {
     if (verbosity > 1) std::cout <<"max_charge: "<<max_charge<<", n_hits: "<<n_hits<<std::endl;
     Log("EventSelector tool: MRD/Tank coincidene candidate "+std::to_string(i_mrd)+ " has time difference: "+std::to_string(time_diff),1,verbosity);
     
-    if (time_diff > pmtmrd_coinc_min && time_diff < pmtmrd_coinc_max && max_charge > 200 && n_hits >= 20){
+    if (time_diff > pmtmrd_coinc_min && time_diff < pmtmrd_coinc_max){
       coincidence = true;
       vector_mrd_coincidence.push_back(i_mrd);
     }

@@ -94,7 +94,7 @@ clean:
 	rm -f include/*.h
 	rm -f lib/*.so
 	rm -f Analyse
-	rm -f UserTools/*/*.o
+	find UserTools/* -type f -name '*.o' -follow -writable -delete
 	rm -f DataModel/*.o
 	rm -f DataModel/DataModel_Linkdef.hh
 	rm -f DataModel/DataModel_RootDict*
