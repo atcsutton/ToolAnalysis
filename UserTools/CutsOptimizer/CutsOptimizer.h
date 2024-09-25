@@ -80,8 +80,12 @@ class CutsOptimizer: public Tool {
   bool IsInTank;
   int nTotalTrueNeutronsPrompt = 0;
   int nTotalTrueNeutronsDelayed = 0;
-  int nSelectedTrueNeutrons = 0;
-  int nAllSelectedCluster = 0;
+  int nTotalNonTrueNeutronsPrompt = 0;
+  int nTotalNonTrueNeutronsDelayed = 0;
+  int nSelectedTrueNeutronsPrompt = 0;
+  int nAllSelectedClusterPrompt = 0;
+  int nSelectedTrueNeutronsDelayed = 0;
+  int nAllSelectedClusterDelayed = 0;
   bool isPrompt;
   double ChargeTotal = 0;
   double chargeCut = 0;

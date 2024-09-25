@@ -68,6 +68,7 @@ class SelectionEffnPurity: public Tool {
   TTree *fOutTreeContDelayed;
   TTree *fOutTreeContPrompt;
   double fTrueVtxX, fTrueVtxY, fTrueVtxZ;
+  double fMCX, fMCY, fMCZ;
   double fRecoVtxX, fRecoVtxY, fRecoVtxZ;
   double fDistX, fDistY, fDistZ, fDist; 
   int fBestPDG, fMoreNeutronQ;
@@ -131,7 +132,26 @@ class SelectionEffnPurity: public Tool {
 
   TH1F *h_allContaminationPrompt = nullptr;
   TH1F *h_allContaminationDelayed = nullptr;
-   /// \brief verbosity levels: if 'verbosity' < this level, the message type will be logged.
+
+  TH1F *h_nTotalTrueNeutronsPromptCC = nullptr;
+
+  //ClusterCharge vs ChargeBalance
+  TH1F *h_nAllSelectedClusterPromptClusterCharge = nullptr;
+  TH1F *h_nAllSelectedClusterPromptChargeBalance = nullptr;
+  TH1F *h_nSelectedTrueNeutronsPromptClusterCharge = nullptr;
+  TH1F *h_nSelectedTrueNeutronsPromptBalance = nullptr;
+
+  TH1F *h_nAllSelectedClusterDelayedClusterCharge = nullptr;
+  TH1F *h_nAllSelectedClusterDelayedChargeBalance = nullptr;
+  TH1F *h_nSelectedTrueNeutronsDelayedClusterCharge = nullptr;
+  TH1F *h_nSelectedTrueNeutronsDelayedBalance = nullptr;
+
+  TH2F *h_nAllSelectedClusterPromptCBCC = nullptr;
+  TH2F *h_nSelectedTrueNeutronsPromptCBCC = nullptr;
+
+  TH2F *h_nAllSelectedClusterDelayedCBCC = nullptr;
+  TH2F *h_nSelectedTrueNeutronsDelayedCBCC = nullptr;
+  /// \brief verbosity levels: if 'verbosity' < this level, the message type will be logged.
   int verbosity;
   int v_error=0;
   int v_warning=1;

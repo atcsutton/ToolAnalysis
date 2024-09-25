@@ -19,24 +19,24 @@ bool SelectionEffnPurity::Initialise(std::string configfile, DataModel &data){
   bool gotVerbosity = m_variables.Get("verbosity", verbosity);
   if (!gotVerbosity){
     verbosity = 0;
-    Log("SelectionEffnPurity: \"verbosity\" not set in the config, defaulting to 0", v_error, verbosity);
+    Log("1. SelectionEffnPurity: \"verbosity\" not set in the config, defaulting to 0", v_error, verbosity);
   }
 
   bool gotClusterMapName = m_variables.Get("ClusterMapName", fClusterMapName);
   if (!gotClusterMapName) {
-    Log("EvaluateVertex: \"ClusterMapName\" not set in the config! Aborting!", v_error, verbosity);
+    Log("2. SelectionEffnPurity: \"ClusterMapName\" not set in the config! Aborting!", v_error, verbosity);
     return false;
   }
   
   bool gotVertexMapName = m_variables.Get("VertexMapName", fVertexMapName);
   if (!gotVertexMapName) {
-    Log("EvaluateVertex: \"VertexMapName\" not set in the config! Aborting!", v_error, verbosity);
+    Log("3. SelectionEffnPurity: \"VertexMapName\" not set in the config! Aborting!", v_error, verbosity);
     return false;
   }
 
   bool gotGeometry = m_data->Stores.at("ANNIEEvent")->Header->Get("AnnieGeometry", fGeo);
   if(!gotGeometry){
-    Log("SelectionEffnPurity:Error retrieving Geometry from ANNIEEvent! Aborting!", v_error, verbosity);
+    Log("4. SelectionEffnPurity:Error retrieving Geometry from ANNIEEvent! Aborting!", v_error, verbosity);
     return false;
   }
 
@@ -55,7 +55,7 @@ bool SelectionEffnPurity::Execute(){
   MCParticle neutrino;
   isok = m_data->Stores["ANNIEEvent"]->Get("NeutrinoParticle", neutrino);
   if (isok) NeutrinoEnergy = neutrino.GetStartEnergy();
-  bool IsInTank;
+  bool IsInTank,IsInTankMC ;
   //  double mchits = 0;
   for (auto& MCkey : *fMCParticles){
 
@@ -70,16 +70,18 @@ bool SelectionEffnPurity::Execute(){
     fTrueVtxZ = Positionvtx.Z();
     IsInTank = fGeo->GetTankContained(Positionvtx);
     double clttime = MCkey.GetStopTime();
-
+    //fTotalQ = fClusterTotalCharge->at(clttime);
     // std::cout << "Vertex X:-" << fTrueVtxX << "; Vertex Y:-" << fTrueVtxY << "; Vertex Z:-" << fTrueVtxZ << std::endl;
-    
+    //    bool good_class = this->LoadTankClusterClassifiers(clttime);
+    // if (!good_class) { Log("PhaseIINeutronBG tool: NO cluster classifiers..", v_debug, verbosity); }
+    // std::cout << fClusterChargeBalance << std::endl;
     if (ParticlePDG==2112 && ParentPdg ==0){
       nTotalTrueNeutronsWorld++;
 
       if (IsInTank){ //Selecting only Inside the tank events
 	nTotalTrueNeutrons++;
 
-	if (clttime < 2000.0){
+	if (clttime <= 2000.0){
 	  //	  h_nTotalTrueNeutronsPromptNhits->Fill(MCNhits);
 	  h_nTotalTrueNeutronsPromptPDG->Fill(ParticlePDG);
 	  h_nTotalTrueNeutronsPromptCT->Fill(clttime);
@@ -87,6 +89,8 @@ bool SelectionEffnPurity::Execute(){
 	  h_nTotalTrueNeutronsPromptTVtxYZ->Fill(fTrueVtxY, fTrueVtxZ);
 	  h_nTotalTrueNeutronsPromptTVtxXZ->Fill(fTrueVtxX, fTrueVtxZ);
 	  h_nTotalTrueNeutronsPromptNE ->Fill(NeutrinoEnergy);
+	  //	  h_nTotalTrueNeutronsPromptCC->Fill(fTotalQ);
+	  // std::cout << fTotalQ << std::endl;
 	  nTotalTrueNeutronsPrompt++;
 	}
 	else if (clttime > 2000.0){
@@ -109,29 +113,44 @@ bool SelectionEffnPurity::Execute(){
     int bestPrtIdx = fMCParticleIndexMap->at(bestPrtID);
     fTotalQ = fClusterTotalCharge->at(clusterTime);
     fBestPDG = fClusterToBestParticlePDG->at(clusterTime);
-    
+    MCParticle bestPrt = fMCParticles->at(bestPrtIdx);
+    Position pos = bestPrt.GetStopVertex();
+    IsInTankMC = fGeo->GetTankContained(pos);
+    fMCX = pos.X();
+    fMCY = pos.Y();
+    fMCZ = pos.Z();
     const std::vector<MCHit>& hits = clusterKey.second;
     size_t Nhits = hits.size();
 
     //    std::cout << "Geo contained" << IsInTank << std::endl;
-    //    std::cout << "Vertex X:-" << fTrueVtxX << std::endl; 
+    //    std::cout << "Vertex X:-" << fTrueVtxX << ":" << fTrueVtxY << ":" << fTrueVtxZ << std::endl; 
 
     bool good_class = this->LoadTankClusterClassifiers(clusterTime);
     if (!good_class) { Log("PhaseIINeutronBG tool: NO cluster classifiers..", v_debug, verbosity); }
-
-
+    //    if (fTotalQ > 120){std::cout << "Magic:" << fTotalQ << std::endl;}
     //looping over all the particles from ClusterMap
-    if (IsInTank){
+    if (IsInTankMC){
       if (fBestPDG != 0){
 	nAllSelectedClustersWorld++;
-	if (clusterTime < 2000.0){ //Prompt window && neutron selection cuts
-	  if (fClusterChargeBalance < 0.4 && fTotalQ < 120 && fClusterChargeBalance < 0.5 - fTotalQ / 300){
+	if (clusterTime <= 2000.0){ //Prompt window && neutron selection cuts
+	  //	  std::cout <<fTotalQ << "::" << fClusterChargeBalance << std::endl;
+	  h_nAllSelectedClusterPromptClusterCharge->Fill(fTotalQ);
+	  h_nAllSelectedClusterPromptChargeBalance->Fill(fClusterChargeBalance);
+	  h_nAllSelectedClusterPromptCBCC->Fill(fTotalQ, fClusterChargeBalance);
+	  if (fBestPDG == 2112){
+	    h_nSelectedTrueNeutronsPromptClusterCharge->Fill(fTotalQ);
+	    h_nSelectedTrueNeutronsPromptBalance->Fill(fClusterChargeBalance);
+	    h_nSelectedTrueNeutronsPromptCBCC->Fill(fTotalQ, fClusterChargeBalance);
+	  };
+
+	  /*	  if (fClusterChargeBalance < 0.4 && fTotalQ < 120 && fClusterChargeBalance < 0.5 - fTotalQ / 300){
+	    //if (fClusterChargeBalance < 0.4 && fTotalQ < 120){
 	    h_nAllSelectedClustersPromptNhits->Fill(Nhits);
 	    h_nAllSelectedClustersPromptPDG->Fill(fBestPDG);
 	    h_nAllSelectedClustersPromptCT->Fill(clusterTime);
-	    h_nAllSelectedClustersPromptTVtxXY->Fill(fTrueVtxX, fTrueVtxY);
-	    h_nAllSelectedClustersPromptTVtxYZ->Fill(fTrueVtxY, fTrueVtxZ);
-	    h_nAllSelectedClustersPromptTVtxXZ->Fill(fTrueVtxX, fTrueVtxZ);
+	    h_nAllSelectedClustersPromptTVtxXY->Fill(fMCX, fMCY);
+	    h_nAllSelectedClustersPromptTVtxYZ->Fill(fMCY, fMCZ);
+	    h_nAllSelectedClustersPromptTVtxXZ->Fill(fMCX, fMCZ);
 	    h_nAllSelectedClustersPromptNE->Fill(NeutrinoEnergy);
 	    nAllSelectedClustersPrompt++; 
 	    
@@ -139,9 +158,9 @@ bool SelectionEffnPurity::Execute(){
 	      h_nSelectedTrueNeutronsPromptNhits->Fill(Nhits);
 	      h_nSelectedTrueNeutronsPromptPDG->Fill(fBestPDG);
 	      h_nSelectedTrueNeutronsPromptCT->Fill(clusterTime);
-	      h_nSelectedTrueNeutronsPromptTVtxXY->Fill(fTrueVtxX, fTrueVtxY);
-	      h_nSelectedTrueNeutronsPromptTVtxYZ->Fill(fTrueVtxY, fTrueVtxZ);
-	      h_nSelectedTrueNeutronsPromptTVtxXZ->Fill(fTrueVtxX, fTrueVtxZ);
+	      h_nSelectedTrueNeutronsPromptTVtxXY->Fill(fMCX, fMCY);
+	      h_nSelectedTrueNeutronsPromptTVtxYZ->Fill(fMCY, fMCZ);
+	      h_nSelectedTrueNeutronsPromptTVtxXZ->Fill(fMCX, fMCZ);
 	      h_nSelectedTrueNeutronsPromptNE->Fill(NeutrinoEnergy);
 	      nSelectedTrueNeutronsPrompt++;
 	    }
@@ -216,16 +235,28 @@ bool SelectionEffnPurity::Execute(){
 	    else if (fBestPDG== 3338){nPromptGd157++;}
 	    else if (fBestPDG== 3339){nPromptGd155++;}
 
-	  }	
+	  }*/	
 	}
-	else if (clusterTime > 2000.0){ //Delayed Window 
-	  if (fClusterChargeBalance < 0.4 && fTotalQ < 120 && fClusterChargeBalance < 0.5 - fTotalQ / 300){
+	else if (clusterTime > 2000.0){
+	  h_nAllSelectedClusterDelayedClusterCharge->Fill(fTotalQ);
+	  h_nAllSelectedClusterDelayedChargeBalance->Fill(fClusterChargeBalance);
+	  h_nAllSelectedClusterDelayedCBCC->Fill(fTotalQ, fClusterChargeBalance);
+	  
+	  if (fBestPDG == 2112){
+	    h_nSelectedTrueNeutronsDelayedClusterCharge->Fill(fTotalQ);
+	    h_nSelectedTrueNeutronsDelayedBalance->Fill(fClusterChargeBalance);
+	    h_nSelectedTrueNeutronsDelayedCBCC->Fill(fTotalQ, fClusterChargeBalance);
+	  };
+	  
+	  //Delayed Window
+	  /*if (fClusterChargeBalance < 0.4 && fTotalQ < 120 && fClusterChargeBalance < 0.5 - fTotalQ / 300){
+	    //	  if (fClusterChargeBalance < 0.4 && fTotalQ < 120){
 	    h_nAllSelectedClustersDelayedNhits->Fill(Nhits);
 	    h_nAllSelectedClustersDelayedPDG->Fill(fBestPDG);
 	    h_nAllSelectedClustersDelayedCT->Fill(clusterTime);
-	    h_nAllSelectedClustersDelayedTVtxXY->Fill(fTrueVtxX, fTrueVtxY);
-	    h_nAllSelectedClustersDelayedTVtxYZ->Fill(fTrueVtxY, fTrueVtxZ);
-	    h_nAllSelectedClustersDelayedTVtxXZ->Fill(fTrueVtxX, fTrueVtxZ);
+	    h_nAllSelectedClustersDelayedTVtxXY->Fill(fMCX, fMCY);
+	    h_nAllSelectedClustersDelayedTVtxYZ->Fill(fMCY, fMCZ);
+	    h_nAllSelectedClustersDelayedTVtxXZ->Fill(fMCX, fMCZ);
 	    h_nAllSelectedClustersDelayedNE->Fill(NeutrinoEnergy);
 	    nAllSelectedClustersDelayed++;
 	    
@@ -233,9 +264,9 @@ bool SelectionEffnPurity::Execute(){
 	      h_nSelectedTrueNeutronsDelayedNhits->Fill(Nhits);
 	      h_nSelectedTrueNeutronsDelayedPDG->Fill(fBestPDG);
 	      h_nSelectedTrueNeutronsDelayedCT->Fill(clusterTime);
-	      h_nSelectedTrueNeutronsDelayedTVtxXY->Fill(fTrueVtxX, fTrueVtxY);
-	      h_nSelectedTrueNeutronsDelayedTVtxYZ->Fill(fTrueVtxY, fTrueVtxZ);
-	      h_nSelectedTrueNeutronsDelayedTVtxXZ->Fill(fTrueVtxX, fTrueVtxZ);
+	      h_nSelectedTrueNeutronsDelayedTVtxXY->Fill(fMCX, fMCY);
+	      h_nSelectedTrueNeutronsDelayedTVtxYZ->Fill(fMCY, fMCZ);
+	      h_nSelectedTrueNeutronsDelayedTVtxXZ->Fill(fMCX, fMCZ);
 	      h_nSelectedTrueNeutronsDelayedNE->Fill(NeutrinoEnergy);
 	      nSelectedTrueNeutronsDelayed++;
 	    }
@@ -308,11 +339,11 @@ bool SelectionEffnPurity::Execute(){
 
 
 	  }
-	}  
-      } 
+	  }*/  
+	} 
+      }
     }
   }
-  
   return true;
 }
 
@@ -606,6 +637,25 @@ void SelectionEffnPurity::InitHist(double max)
 
   h_allContaminationPrompt = new TH1F("h_allContaminationPrompt", "h_allContaminationPrompt", 150, 0, 150);
   h_allContaminationDelayed = new TH1F("h_allContaminationDelayed", "h_allContaminationDelayed", 150, 0, 150);
+
+  
+  //Need to write histograms for the ClusterCharge and Charge Balance here and write it below the histograms
+  h_nAllSelectedClusterPromptClusterCharge = new TH1F("h_nAllSelectedClusterPromptClusterCharge", "h_nAllSelectedClusterPromptClusterCharge", 50, 0, 300);
+  h_nAllSelectedClusterPromptChargeBalance = new TH1F("h_nAllSelectedClusterPromptChargeBalance", "h_nAllSelectedClusterPromptChargeBalance", 50, 0, 1);
+  h_nSelectedTrueNeutronsPromptClusterCharge = new TH1F("h_nSelectedTrueNeutronsPromptClusterCharge", "h_nSelectedTrueNeutronsPromptClusterCharge", 50, 0, 300);
+  h_nSelectedTrueNeutronsPromptBalance = new TH1F("h_nSelectedTrueNeutronsPromptBalance", "h_nSelectedTrueNeutronsPromptBalance", 50, 0, 1);
+
+  h_nAllSelectedClusterDelayedClusterCharge = new TH1F("h_nAllSelectedClusterDelayedClusterCharge", "h_nAllSelectedClusterDelayedClusterCharge", 50, 0, 300);
+  h_nAllSelectedClusterDelayedChargeBalance = new TH1F("h_nAllSelectedClusterDelayedChargeBalance", "h_nAllSelectedClusterDelayedChargeBalance", 50, 0, 1);
+  h_nSelectedTrueNeutronsDelayedClusterCharge = new TH1F("h_nSelectedTrueNeutronsDelayedClusterCharge", "h_nSelectedTrueNeutronsDelayedClusterCharge", 50, 0, 300);
+  h_nSelectedTrueNeutronsDelayedBalance = new TH1F("h_nSelectedTrueNeutronsDelayedBalance", "h_nSelectedTrueNeutronsDelayedBalance", 50, 0, 1);
+
+  h_nAllSelectedClusterPromptCBCC = new TH2F("h_nAllSelectedClusterPromptCBCC", "h_nAllSelectedClusterPromptCBCC", 50, 0, 300, 50, 0, 1);
+  h_nSelectedTrueNeutronsPromptCBCC = new TH2F("h_nSelectedTrueNeutronsPromptCBCC", "h_nSelectedTrueNeutronsPromptCBCC", 50, 0, 300, 50, 0, 1);
+  h_nAllSelectedClusterDelayedCBCC = new TH2F("h_nAllSelectedClusterDelayedCBCC", "h_nAllSelectedClusterDelayedCBCC", 50, 0, 300, 50, 0, 1);
+  h_nSelectedTrueNeutronsDelayedCBCC = new TH2F("h_nSelectedTrueNeutronsDelayedCBCC", "h_nSelectedTrueNeutronsDelayedCBCC", 50, 0, 300, 50, 0, 1);
+  
+
   gROOT->cd();
 
 }
@@ -668,6 +718,22 @@ void SelectionEffnPurity::WriteHist()
 
   h_allContaminationPrompt->Write();
   h_allContaminationDelayed->Write();
+
+  h_nAllSelectedClusterPromptClusterCharge->Write();
+  h_nAllSelectedClusterPromptChargeBalance->Write();
+  h_nSelectedTrueNeutronsPromptClusterCharge->Write();
+  h_nSelectedTrueNeutronsPromptBalance->Write();
+
+  h_nAllSelectedClusterDelayedClusterCharge->Write();
+  h_nAllSelectedClusterDelayedChargeBalance->Write();
+  h_nSelectedTrueNeutronsDelayedClusterCharge->Write();
+  h_nSelectedTrueNeutronsDelayedBalance->Write();
+
+  h_nAllSelectedClusterPromptCBCC->Write();
+  h_nSelectedTrueNeutronsPromptCBCC->Write();
+
+  h_nAllSelectedClusterDelayedCBCC->Write();
+  h_nSelectedTrueNeutronsDelayedCBCC->Write();
   
   gROOT->cd();
 
@@ -677,70 +743,70 @@ bool SelectionEffnPurity::LoadFromStores()
 {
   bool goodAnnieEvent = m_data->Stores.count("ANNIEEvent");
   if (!goodAnnieEvent) {
-    logmessage = "SelectionEffnPurity:0. no ANNIEEvent store!";
+    logmessage = "1.1 SelectionEffnPurity:no ANNIEEvent store!";
     Log(logmessage, v_error, verbosity);
     return false;
   }
   
   bool goodClusterMap = m_data->Stores.at("ANNIEEvent")->Get(fClusterMapName, fClusterMap);
   if (!goodClusterMap) {
-    logmessage = "SelectionEffnPurity: 1.no " + fClusterMapName + " in the ANNIEEvent!";
+    logmessage = "1.2 SelectionEffnPurity: no " + fClusterMapName + " in the ANNIEEvent!";
     Log(logmessage, v_error, verbosity);
     return false;
   }
     
   bool goodMCParticles = m_data->Stores.at("ANNIEEvent")->Get("MCParticles", fMCParticles);
   if (!goodMCParticles) {
-    logmessage = "SelectionEffnPurity:3. no MCParticles in the ANNIEEvent!";
+    logmessage = "1.3 SelectionEffnPurity:no MCParticles in the ANNIEEvent!";
     Log(logmessage, v_error, verbosity);
     return false;
   }
   
   bool goodMCParticleIndexMap = m_data->Stores.at("ANNIEEvent")->Get("TrackId_to_MCParticleIndex", fMCParticleIndexMap);
   if (!goodMCParticleIndexMap) {
-    logmessage = "SelectionEffnPurity: 4.no TrackId_to_MCParticleIndex in the ANNIEEvent!";
+    logmessage = "1.4 SelectionEffnPurity:no TrackId_to_MCParticleIndex in the ANNIEEvent!";
     Log(logmessage, v_error, verbosity);
     return false;
   }
   
   bool goodClusterToBestParticleID = m_data->Stores.at("ANNIEEvent")->Get("ClusterToBestParticleID", fClusterToBestParticleID);
   if (!goodClusterToBestParticleID) {
-    logmessage = "SelectionEffnPurity: 5.no ClusterToBestParticleID in the ANNIEEvent!";
+    logmessage = "1.5 SelectionEffnPurity:no ClusterToBestParticleID in the ANNIEEvent!";
     Log(logmessage, v_error, verbosity);
     return false;
   }
   
   bool goodClusterToBestParticlePDG = m_data->Stores.at("ANNIEEvent")->Get("ClusterToBestParticlePDG", fClusterToBestParticlePDG);
   if (!goodClusterToBestParticlePDG) {
-    logmessage = "SelectionEffnPurity: 6.no ClusterToBestParticlePDG in the ANNIEEvent!";
+    logmessage = "1.6 SelectionEffnPurity: no ClusterToBestParticlePDG in the ANNIEEvent!";
     Log(logmessage, v_error, verbosity);
     return false;
   }
   
   bool goodClusterEfficiency = m_data->Stores.at("ANNIEEvent")->Get("ClusterEfficiency", fClusterEfficiency);
   if (!goodClusterEfficiency) {
-    logmessage = "SelectionEffnPurity: 7.no ClusterEfficiency in the ANNIEEvent!";
+    logmessage = "1.7 SelectionEffnPurity:no ClusterEfficiency in the ANNIEEvent!";
     Log(logmessage, v_error, verbosity);
     return false;
   }
   
   bool goodClusterPurity = m_data->Stores.at("ANNIEEvent")->Get("ClusterPurity", fClusterPurity);
   if (!goodClusterPurity) {
-    logmessage = "SelectionEffnPurity: 8.no ClusterPurity in the ANNIEEvent!";
+    logmessage = "1.8 SelectionEffnPurity:no ClusterPurity in the ANNIEEvent!";
     Log(logmessage, v_error, verbosity);
     return false;
   }
   
   bool goodClusterTotalCharge = m_data->Stores.at("ANNIEEvent")->Get("ClusterTotalCharge", fClusterTotalCharge);
   if (!goodClusterTotalCharge) {
-    logmessage = "SelectionEffnPurity: 9.no ClusterTotalCharge in the ANNIEEvent!";
+    logmessage = "1.9 SelectionEffnPurity:no ClusterTotalCharge in the ANNIEEvent!";
     Log(logmessage, v_error, verbosity);
     return false;
   }
   
   bool goodClusterNeutronCharge = m_data->Stores.at("ANNIEEvent")->Get("ClusterNeutronCharge", fClusterNeutronCharge);
   if (!goodClusterNeutronCharge) {
-    logmessage = "SelectionEffnPurity: 10.no ClusterNeutronCharge in the ANNIEEvent!";
+    logmessage = "1.10 SelectionEffnPurity:no ClusterNeutronCharge in the ANNIEEvent!";
     Log(logmessage, v_error, verbosity);
     return false;
     }

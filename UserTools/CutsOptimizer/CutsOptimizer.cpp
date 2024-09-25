@@ -1,6 +1,8 @@
 #include "CutsOptimizer.h"
 #include <iostream>
 #include <fstream>
+#include <map>
+#include <tuple>
 
 CutsOptimizer::CutsOptimizer():Tool(){}
 
@@ -37,6 +39,8 @@ bool CutsOptimizer::Initialise(std::string configfile, DataModel &data){
     Log("CutsOptimizer: Error retrieving Geometry from ANNIEEvent! Aborting!", v_error, verbosity);
     return false;
   }
+  
+  
   SetupTTree();
   return true;
 }
@@ -46,10 +50,13 @@ bool CutsOptimizer::Execute(){
   if (!LoadFromStores())
     return false;
 
-   for (auto& MCkey : *fMCParticles){
-
+  nTotalTrueNeutronsPrompt = 0;
+  nTotalTrueNeutronsDelayed = 0;
+  nTotalNonTrueNeutronsPrompt = 0;
+  nTotalNonTrueNeutronsDelayed = 0;
+  
+  for (auto& MCkey : *fMCParticles){
     int ParticlePDG = MCkey.GetPdgCode();
-    // std::cout <<"MCParticle PDG code:" << ParticlePDG << std::endl;
     int ParentPdg = MCkey.GetParentPdg();
     Position Positionvtx = MCkey.GetStopVertex();
     //Geo cut apply!!!!!!
@@ -58,74 +65,89 @@ bool CutsOptimizer::Execute(){
     fTrueVtxZ = Positionvtx.Z();
     IsInTank = fGeo->GetTankContained(Positionvtx);
     double clttime = MCkey.GetStopTime();
+    // fTotalQ = fClusterTotalCharge->at(clttime);
+    //    std::cout << fTotalQ << "<<Charge Total" << std::endl;
     
     if (IsInTank && ParticlePDG==2112 && ParentPdg ==0){
-      if (clttime <= 2000.0){nTotalTrueNeutronsPrompt++;}
+      if (clttime <= 2000.0){
+	//	h_nTotalTrueNeutronsPrompt_CC->Fill(fTotalQ);
+	//	h_nTotalTrueNeutronsPrompt_CT->Fill()
+	nTotalTrueNeutronsPrompt++;}
+      
       else if (clttime > 2000.0){nTotalTrueNeutronsDelayed++;}
     }
-   }
-   
-   double minQ = 60.0;
-   double maxQ = 180.0;
-   double minCB = 0.2;
-   double maxCB = 0.8;
-   
+  }
+  
+  double minQ = 60.0;
+  double maxQ = 180.0;
+  double minCB = 0.2;
+  double maxCB = 0.8;
+  
   // Define the number of steps for each loop
-   double chargeStepSize = 10.0;
-   double cbStepSize = 0.05;
-   
+  double chargeStepSize = 10.0;
+  double cbStepSize = 0.05;
+  
   for (chargeCut = minQ; chargeCut < maxQ; chargeCut += chargeStepSize) {
     for (cbCut = minCB; cbCut < maxCB; cbCut +=cbStepSize) {
+      
+      nAllSelectedClusterPrompt = 0;
+      nSelectedTrueNeutronsPrompt = 0;
+      nAllSelectedClusterDelayed = 0;
+      nSelectedTrueNeutronsDelayed = 0;
+      
       for (auto& clusterKey : *fClusterMap){
 	double clusterTime = clusterKey.first;
 	int bestPrtID = fClusterToBestParticleID->at(clusterTime);
 	int bestPrtIdx = fMCParticleIndexMap->at(bestPrtID);
 	fTotalQ = fClusterTotalCharge->at(clusterTime);
 	fBestPDG = fClusterToBestParticlePDG->at(clusterTime);
-	//	IsInTank =  fGeo->GetTankContained(fMCParticles->at(bestPrtIdx)->GetStopVertex());
 	MCParticle bestPrt = fMCParticles->at(bestPrtIdx);
 	Position pos = bestPrt.GetStopVertex();
 	IsInTankMC = fGeo->GetTankContained(pos);
-
+	
 	bool good_class = this->LoadTankClusterClassifiers(clusterTime);
 	if (!good_class) { Log("CutsOptimizer tool: NO cluster classifiers..", v_debug, verbosity); }
-
-	isPrompt = false;
-	if (clusterTime <= 2000.0)
-	  isPrompt = true;
+	
+	/*	isPrompt = false;
+		if (clusterTime <= 2000.0)
+		isPrompt = true; */
 	
 	bool passCut = true;
 	
 	if ( fTotalQ > chargeCut ) passCut = false;
 	
 	if ( fClusterChargeBalance > cbCut ) passCut = false;
-	std::cout << fTotalQ << "::" <<  chargeCut << "::" << fClusterChargeBalance << "::" << cbCut << std::endl;
+	
 	if (fTotalQ < chargeCut && fClusterChargeBalance < cbCut) {
-	  std::cout << fBestPDG << std::endl;
-	  nAllSelectedCluster++;
-	  if (fBestPDG == 2112){
-	    nSelectedTrueNeutrons++;
+	  if (clusterTime <=2000.0){
+	    nAllSelectedClusterPrompt++;
+	    if (fBestPDG == 2112){
+	      nSelectedTrueNeutronsPrompt++;
+	    }
+	  }
+	  else if (clusterTime > 2000.0){
+	    nAllSelectedClusterDelayed++;
+            if (fBestPDG == 2112){
+              nSelectedTrueNeutronsDelayed++;
+            }
 	  }
 	}
+	
 	fOutTree->Fill();
       }
     }
   }
-  
   return true;
 }
 
 
 
 bool CutsOptimizer::Finalise(){
-  std::cout << "Total True Neutron prompt:-" << nTotalTrueNeutronsPrompt <<std::endl;
-  std::cout << "All Selected cluster:-" << nAllSelectedCluster << std::endl;
-  std::cout << "Selected Trued Neutrons:-" << nSelectedTrueNeutrons << std::endl;
 
   // fOutTree->Fill();
   fOutFile->cd();
   fOutTree->Write();
-  //  this->WriteHist();
+  //this->WriteHist();
   fOutFile->Close();
   return true;
 }
@@ -137,8 +159,12 @@ void CutsOptimizer::SetupTTree()
   fOutTree = new TTree("tree", "tree");
   fOutTree->Branch("nTotalTrueNeutronsPrompt",                 &nTotalTrueNeutronsPrompt);
   fOutTree->Branch("nTotalTrueNeutronsDelayed",                 &nTotalTrueNeutronsDelayed);
-  fOutTree->Branch("nAllSelectedCluster", &nAllSelectedCluster);
-  fOutTree->Branch("nSelectedTrueNeutrons", &nSelectedTrueNeutrons);
+  fOutTree->Branch("nTotalNonTrueNeutronsPrompt",                 &nTotalNonTrueNeutronsPrompt);
+  fOutTree->Branch("nTotalNonTrueNeutronsDelayed",                 &nTotalNonTrueNeutronsDelayed);
+  fOutTree->Branch("nAllSelectedClusterPrompt", &nAllSelectedClusterPrompt);
+  fOutTree->Branch("nSelectedTrueNeutronsPrompt", &nSelectedTrueNeutronsPrompt);
+  fOutTree->Branch("nAllSelectedClusterDelayed", &nAllSelectedClusterDelayed);
+  fOutTree->Branch("nSelectedTrueNeutronsDelayed", &nSelectedTrueNeutronsDelayed);
   fOutTree->Branch("isPrompt", &isPrompt);
   fOutTree->Branch("chargeCut", &chargeCut);
   fOutTree->Branch("cbCut", &cbCut);
