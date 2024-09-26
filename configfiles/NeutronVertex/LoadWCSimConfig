@@ -12,4 +12,3 @@ LappdStripLength 100         ## relative x position of each LAPPD strip, for dua
 LappdStripSeparation 10      ## stripline separation, for calculating relative y position of each LAPPD strip [mm]
 PMTMask ./configfiles/LoadWCSim/DeadPMTIDs_p2v7.txt ## Which PMTs should be masked out? / are dead?
 ChankeyToPMTIDMap ./configfiles/LoadWCSim/Chankey_WCSimID_v7.txt
-MC_pulse_width 10  # width of MC "pulse" in which to integrate true photon hits - all true photon hits on a single PMT will be combined into a "pulse" of this width
