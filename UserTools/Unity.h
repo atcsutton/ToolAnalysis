@@ -179,3 +179,4 @@
 #include "ClusterSelector.h"
 #include "BackTracker.h"
 #include "EvaluateVertex.h"
+#include "VertexLeastSquares.h"

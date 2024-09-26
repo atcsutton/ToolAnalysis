@@ -1,5 +1,7 @@
 verbosity 0
 ClusterMapName NeutronClusters # Input cluster map to find vertices for
 UseMCHits 1 # Does the cluster map contain Hits or MCHits?
-InitialSpacing 0.5 # in meters
-MinSpacing 0.005 # in meters
+InitialSpacing 0.35 # in meters
+MinSpacing 0.01 # in meters
+NumNodes 20
+DebugTree 1 # bool to produce debug TTree or not

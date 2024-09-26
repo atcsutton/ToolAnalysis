@@ -1,10 +1,11 @@
-#ifndef TimeGridVertex_H
-#define TimeGridVertex_H
+#ifndef VertexLeastSquares_H
+#define VertexLeastSquares_H
 
 #include <string>
 #include <iostream>
 
 #include "Tool.h"
+#include "MatrixUtil.h"
 #include "Position.h"
 #include "Hit.h"
 
@@ -12,8 +13,9 @@
 #include "TTree.h"
 
 
+
 /**
- * \class TimeGridVertex
+ * \class VertexLeastSquares
  *
  * This is a blank template for a Tool used by the script to generate a new custom tool. Please fill out the description and author information.
 *
@@ -21,42 +23,47 @@
 * $Date: 2019/05/28 10:44:00 $
 * Contact: b.richards@qmul.ac.uk
 */
-class TimeGridVertex: public Tool {
+class VertexLeastSquares: public Tool {
 
 
  public:
 
-  TimeGridVertex(); ///< Simple constructor
+  VertexLeastSquares(); ///< Simple constructor
   bool Initialise(std::string configfile,DataModel &data); ///< Initialise Function for setting up Tool resources. @param configfile The path and name of the dynamic configuration file to read in. @param data A reference to the transient data class used to pass information between Tools.
   bool Execute(); ///< Execute function used to perform Tool purpose.
   bool Finalise(); ///< Finalise function used to clean up resources.
 
-  // Generate a rectangular prism with n{XYZ} nodes in each dimension with the specified spacing
-  std::vector<Position> GenerateVetices(const Position &center, double spacing);
+  // Generate a cylinder with XYZ nodes in each dimension
+  std::vector<Position> GenerateVetices();
 
-  // Perform the actual tRMS calculation for each test point. Returns the pair <vertex Idx, tRMS> of the best match.
-  std::pair<int, double> FindBestVertex(const std::vector<Hit> &hits, const std::vector<Position> &vertices); 
-  std::pair<int, double> FindBestVertex(const std::vector<MCHit> &hits, const std::vector<Position> &vertices);
+  // Evaluate the Jacobian and the solution vector at the guess vertex
+  //   we'll be solving A*dx = b where A = Jacobian(guess), b = -f(guess),
+  //   f = vector of the hit time functions: 0 = 1/c * sqrt( (X-xi)^2 + (Y-yi)^2 + (Z-zi)^2 ) + T - ti
+  //   X,Y,Z are the coords of the vertex and T is the emission time of the light
+  //   xi,yi,zi are the PMT coords and ti is the PMT hit time 
+  void EvalAtGuessVertex(util::Matrix &A, util::Vector &b, const Position &guess, const std::vector<Hit> &hits);
+  void EvalAtGuessVertexMC(util::Matrix &A, util::Vector &b, const Position &guess, const std::vector<MCHit> &hits);
 
-  // Run the while loop to which actually decreases the grid spacing to hone in on the vertex
+  // Actually run the thing until convergence
   void RunLoop();
   void RunLoopMC();
 
   // Filter hits based on time separation and causality
+  std::vector<Hit> FilterHits(std::vector<Hit> hits);
   std::vector<MCHit> FilterHitsMC(std::vector<MCHit> hits);
-    
-  void SetupDebugTree();
+
 
  private:
 
   // Configuration parameters
   std::string fClusterMapName;
   bool fUseMCHits;
-  double fInitialSpacing;
-  double fMinSpacing;
-  int fNumNodes;
+  double fBreakDist;
   bool fDebugTree;
-  
+  double fYSpacing;
+  int fNPlanarPoints;
+  double fRegularizer;
+
   // The ANNIE geometry service
   Geometry *fGeom = nullptr;
 
@@ -66,23 +73,14 @@ class TimeGridVertex: public Tool {
 
   // Vertices we'll save to the ANNIEEvent
   std::map<double, Position> *fVertexMap = nullptr;
-      
-  // The number of nodes in each dimension. These are calculated on the fly from the initial spacing
-  int fNX;
-  int fNY;
-  int fNZ;
 
-  // Output ROOT file for debug ttree
-  TFile *fOutFile;
-  TTree *fVtxTree;
-  TTree *fHitTree;
-  int fEventNum, fLoopCount;
-  double fVtxX, fVtxY, fVtxZ;
-  double fRMSt;
-  double fHitX, fHitY, fHitZ;
-  double fHitT0; 
-  double fEff, fPur, fTotalQ, fNeutronQ;
+  // The number of boundary points for the XZ plane verticies
+  int fNBoundary;
 
+  // Golden ratio and pi
+  const double phi = (1. + sqrt(5.))/2.;
+  const double phisq = pow(phi, 2);
+  const double pi = 3.141592;
 
   // Speed of light in water, m/ns
   const double fSoL = 0.299792458 * 3/4; 

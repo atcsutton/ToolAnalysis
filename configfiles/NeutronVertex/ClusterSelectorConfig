@@ -5,3 +5,5 @@ MaxClusterCharge 120
 MaxClusterCB 0.4
 CBvQIntercept 0.5
 CBvQSlopeInverse -300.
+PDGCut 2112
+FindTrueCapts 1

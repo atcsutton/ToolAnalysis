@@ -23,4 +23,3 @@ Tools_File configfiles/NeutronVertex/ToolsConfig  ## list of tools to run and th
 ##### Run Type #####
 Inline -1 ## number of Execute steps in program, -1 infinite loop that is ended by user 
 Interactive 0 ## set to 1 if you want to run the code interactively
-

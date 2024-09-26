@@ -171,5 +171,6 @@ if (tool=="TimeGridVertex") ret=new TimeGridVertex;
 if (tool=="ClusterSelector") ret=new ClusterSelector;
 if (tool=="BackTracker") ret=new BackTracker;
 if (tool=="EvaluateVertex") ret=new EvaluateVertex;
+if (tool=="VertexLeastSquares") ret=new VertexLeastSquares;
 return ret;
 }

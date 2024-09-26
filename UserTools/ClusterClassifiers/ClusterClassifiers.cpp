@@ -113,11 +113,11 @@ bool ClusterClassifiers::Execute(){
   bool found_prompt_muon = this->IdentifyPromptMuonCluster(ClusterTotalPEs);
 
   //store indices of muon and neutron clusters to ANNIEEvent Store
-  m_data->Stores.at("RecoEvent")->Set("ClusterIndexPromptMuon", prompt_muon_index);
-  if (found_prompt_muon){
-    m_data->Stores.at("RecoEvent")->Set("PromptMuonTotalPE", ClusterTotalPEs.at(ClusterTimes.at(prompt_muon_index)));
-    m_data->Stores.at("RecoEvent")->Set("PromptMuonTime", ClusterTimes.at(prompt_muon_index));
-  }
+  // m_data->Stores.at("RecoEvent")->Set("ClusterIndexPromptMuon", prompt_muon_index);
+  // if (found_prompt_muon){
+  //   m_data->Stores.at("RecoEvent")->Set("PromptMuonTotalPE", ClusterTotalPEs.at(ClusterTimes.at(prompt_muon_index)));
+  //   m_data->Stores.at("RecoEvent")->Set("PromptMuonTime", ClusterTimes.at(prompt_muon_index));
+  // }
 
   return true;
 }

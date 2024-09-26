@@ -1,0 +1,7 @@
+verbosity 0
+ClusterMapName NeutronClusters # Input cluster map to find vertices for
+UseMCHits 1 # Does the cluster map contain Hits or MCHits?
+BreakDist 0.25 # When to stop the optimization
+YSpacing 0.5 # Seed vertices: how far to space the y seeds
+NPlanarPoints 15 # Seed vertices: how many xz points for each y level
+Regularizer 1. # Regularization term for the matrix solver. Higher values stay closer to the seeds 

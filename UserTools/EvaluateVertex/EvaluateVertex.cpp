@@ -63,12 +63,23 @@ bool EvaluateVertex::Execute()
     fRecoVtxY = vertex.Y();
     fRecoVtxZ = vertex.Z();
 
-    // The vertex should be the start location of the particle
-    MCParticle bestParticle = fMCParticles->at(bestPrtIdx);
-    Position trueVertex = bestParticle.GetStartVertex();
-    fTrueVtxX = trueVertex.X();
-    fTrueVtxY = trueVertex.Y();
-    fTrueVtxZ = trueVertex.Z();
+    // Check the neutron capture vertex
+    // these have units of cm
+    std::vector<double> cptPrtIDs = fMCNeutCap.at("CaptParent");
+    for (uint idx = 0; idx < cptPrtIDs.size(); ++idx) {
+      if (cptPrtIDs[idx] == bestPrtID) {
+	fTrueVtxX = fMCNeutCap.at("CaptVtxX")[idx]/100.;
+	fTrueVtxY = fMCNeutCap.at("CaptVtxY")[idx]/100.;
+	fTrueVtxZ = fMCNeutCap.at("CaptVtxZ")[idx]/100.;
+      }
+    }
+
+    // // The vertex should be the start location of the particle?
+    // MCParticle bestParticle = fMCParticles->at(bestPrtIdx);
+    // Position trueVertex = bestParticle.GetStartVertex();
+    // fTrueVtxX = trueVertex.X();
+    // fTrueVtxY = trueVertex.Y();
+    // fTrueVtxZ = trueVertex.Z();
 
     fDistX = fRecoVtxX - fTrueVtxX;
     fDistY = fRecoVtxY - fTrueVtxY;
@@ -196,5 +207,13 @@ bool EvaluateVertex::LoadFromStores()
     return false;
   }
 
+  bool goodMCNeutCap = m_data->Stores.at("ANNIEEvent")->Get("MCNeutCap", fMCNeutCap);
+  if (!goodMCNeutCap) {
+    logmessage = "EvaluateVertex: no MCNeutCap in the ANNIEEvent!";
+    Log(logmessage, v_error, verbosity);
+    return false;
+  }
+
+  
   return true;
 }
