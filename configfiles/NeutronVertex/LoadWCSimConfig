@@ -2,13 +2,14 @@
 # all variables retrieved with m_variables.Get() must be defined here!
 verbose 0
 
-InputFile /app/WCSim/wcsim_0.4.9.root
+InputFile /app/WCSim/wcsim_0.4.0.root
 
 WCSimVersion 3               ## should reflect the WCSim version of the files being loaded
 HistoricTriggeroffset 0      ## time offset of digits relative to the trigger
-UseDigitSmearedTime 1        ## whether to use smeared digit time (T), or true time of first photon (F)
+UseDigitSmearedTime 0        ## whether to use smeared digit time (T), or true time of first photon (F)
 LappdNumStrips 56            ## num channels to construct from each LAPPD
 LappdStripLength 100         ## relative x position of each LAPPD strip, for dual-sided readout [mm]
 LappdStripSeparation 10      ## stripline separation, for calculating relative y position of each LAPPD strip [mm]
 PMTMask ./configfiles/LoadWCSim/DeadPMTIDs_p2v7.txt ## Which PMTs should be masked out? / are dead?
 ChankeyToPMTIDMap ./configfiles/LoadWCSim/Chankey_WCSimID_v7.txt
+MC_pulse_width 10  # width of MC "pulse" in which to integrate true photon hits - all true photon hits on a single PMT will be combined into a "pulse" of this width

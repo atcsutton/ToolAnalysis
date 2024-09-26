@@ -1,4 +1,4 @@
-verbosity 0
+verbosity 10
 ClusterMapName NeutronClusters # Input cluster map to find vertices for
 UseMCHits 1 # Does the cluster map contain Hits or MCHits?
 BreakDist 0.25 # When to stop the optimization
