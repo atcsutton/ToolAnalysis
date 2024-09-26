@@ -51,6 +51,14 @@ MCTruth_fill (1 or 0)
 Input will determine if Truth information from files given is saved to the
 reco tree.  Will output to tree if 1.
 
+Reweight_fill (1 or 0)
+Input will determine if reweights from flux and xsec will be saved to tree.
+Will output to tree if 1.
+
+SimpleReco_fill (1 or 0)
+Input will determine if info from SimpleReconstruction will be saved to reco
+tree. Will output to tree if 1.
+
 muonTruthRecoDiff_fill (1 or 0)
 Input determines if the difference in truth and reco information is saved to
 the reco tree.  Will output to tree if 1.
