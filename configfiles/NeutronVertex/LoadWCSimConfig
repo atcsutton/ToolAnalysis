@@ -2,7 +2,7 @@
 # all variables retrieved with m_variables.Get() must be defined here!
 verbose 0
 
-InputFile /app/WCSim/wcsim_0.4.0.root
+InputFile /app/WCSim/wcsim_0.4.9.root
 
 WCSimVersion 3               ## should reflect the WCSim version of the files being loaded
 HistoricTriggeroffset 0      ## time offset of digits relative to the trigger

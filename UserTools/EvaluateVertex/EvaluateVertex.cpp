@@ -46,19 +46,17 @@ bool EvaluateVertex::Execute()
   // Loop over all the clusters
   for (auto clusterPair : *fClusterMap) {
     // Grab all the stuff for this cluster
-    double clusterTime = clusterPair.first;
-    Position vertex = fVertexMap->at(clusterTime);
-    int bestPrtID = fClusterToBestParticleID->at(clusterTime);
+    fClusterTime = clusterPair.first;
+    Position vertex = fVertexMap->at(fClusterTime);
+    int bestPrtID = fClusterToBestParticleID->at(fClusterTime);
     int bestPrtIdx = fMCParticleIndexMap->at(bestPrtID);
 
-    fBestPDG = fClusterToBestParticlePDG->at(clusterTime);
-    fEff = fClusterEfficiency->at(clusterTime);
-    fPur = fClusterPurity->at(clusterTime);
-    fTotalQ = fClusterTotalCharge->at(clusterTime);
-    fNeutronQ = fClusterNeutronCharge->at(clusterTime);
-    if (fNeutronQ > fTotalQ/2.) fMoreNeutronQ = 1;
-    else fMoreNeutronQ = 0;
-
+    fBestPDG = fClusterToBestParticlePDG->at(fClusterTime);
+    fEff = fClusterEfficiency->at(fClusterTime);
+    fPur = fClusterPurity->at(fClusterTime);
+    fTotalQ = fClusterTotalCharge->at(fClusterTime);
+    fNHits = clusterPair.second.size();
+    
     fRecoVtxX = vertex.X();
     fRecoVtxY = vertex.Y();
     fRecoVtxZ = vertex.Z();
@@ -118,11 +116,11 @@ void EvaluateVertex::SetupTTree()
   fOutTree->Branch("DistZ",        &fDistZ       );
   fOutTree->Branch("Dist",         &fDist        );
   fOutTree->Branch("BestPDG",      &fBestPDG     );
-  fOutTree->Branch("MoreNeutronQ", &fMoreNeutronQ);
+  fOutTree->Branch("NHits",        &fNHits       );
   fOutTree->Branch("Efficiency",   &fEff         );
   fOutTree->Branch("Purity",       &fPur         );
   fOutTree->Branch("TotalQ",       &fTotalQ      );
-  fOutTree->Branch("NeutronQ",     &fNeutronQ    );
+  fOutTree->Branch("ClusterTime",  &fClusterTime );
 
 
 }

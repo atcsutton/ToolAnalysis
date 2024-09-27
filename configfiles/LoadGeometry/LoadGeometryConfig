@@ -1,4 +1,4 @@
-verbosity 0
+verbosity 10
 LAPPDChannelCount 60
 FACCMRDGeoFile ./configfiles/LoadGeometry/FullMRDGeometry_09_29_20.csv 
 #FACCMRDGeoFile ./configfiles/LoadGeometry/FullMRDGeometry.csv
