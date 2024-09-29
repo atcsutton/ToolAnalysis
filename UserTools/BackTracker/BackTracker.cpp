@@ -35,7 +35,6 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
   fClusterEfficiency        = new std::map<double, double>;
   fClusterPurity            = new std::map<double, double>;
   fClusterTotalCharge       = new std::map<double, double>;
-  fClusterNeutronCharge     = new std::map<double, double>;
   
   return true;
 }
@@ -51,7 +50,6 @@ bool BackTracker::Execute()
   fClusterEfficiency       ->clear();
   fClusterPurity           ->clear();
   fClusterTotalCharge      ->clear();
-  fClusterNeutronCharge    ->clear();
 
   fParticleToTankTotalCharge.clear();
   SumParticleTankCharge();
@@ -64,16 +62,14 @@ bool BackTracker::Execute()
     double eff = -5;
     double pur = -5;
     double totalCharge = 0;
-    double neutronCharge = 0;
 
-    MatchMCParticle(apair.second, prtId, prtPdg, eff, pur, totalCharge, neutronCharge);
+    MatchMCParticle(apair.second, prtId, prtPdg, eff, pur, totalCharge);
 
     fClusterToBestParticleID ->emplace(apair.first, prtId);
     fClusterToBestParticlePDG->emplace(apair.first, prtPdg);
     fClusterEfficiency       ->emplace(apair.first, eff);
     fClusterPurity           ->emplace(apair.first, pur);
     fClusterTotalCharge      ->emplace(apair.first, totalCharge);
-    fClusterNeutronCharge    ->emplace(apair.first, neutronCharge);
   }
 
   m_data->Stores.at("ANNIEEvent")->Set("ClusterToBestParticleID",  fClusterToBestParticleID );
@@ -81,7 +77,6 @@ bool BackTracker::Execute()
   m_data->Stores.at("ANNIEEvent")->Set("ClusterEfficiency",        fClusterEfficiency       );
   m_data->Stores.at("ANNIEEvent")->Set("ClusterPurity",            fClusterPurity           );
   m_data->Stores.at("ANNIEEvent")->Set("ClusterTotalCharge",       fClusterTotalCharge      );
-  m_data->Stores.at("ANNIEEvent")->Set("ClusterNeutronCharge",     fClusterNeutronCharge    );
 
   return true;
 }
@@ -121,13 +116,12 @@ void BackTracker::SumParticleTankCharge()
 }
 
 //------------------------------------------------------------------------------
-void BackTracker::MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, int &prtPdg, double &eff, double &pur, double &totalCharge, double &neutronCharge)
+void BackTracker::MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, int &prtPdg, double &eff, double &pur, double &totalCharge)
 {
   // Loop over the hits and get all of their parents and the energy that each one contributed
   //  be sure to bunch up all neutronic contributions
   std::map<int, double> mapParticleToTotalClusterCharge;
   totalCharge = 0;
-  neutronCharge = 0;
 
   for (auto mchit : mchits) {    
     std::vector<int> parentIdxs = *(mchit.GetParents());
@@ -150,13 +144,8 @@ void BackTracker::MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, 
     if (mapParticleToTotalClusterCharge.count(particleId) == 0) 
       mapParticleToTotalClusterCharge.emplace(particleId, depositedCharge);
     else
-      mapParticleToTotalClusterCharge[particleId] += depositedCharge;
-    
-    auto tempParticle = fMCParticles->at(parentIdxs[0]);
-    if (tempParticle.GetParentPdg() == 2112) 
-      neutronCharge += depositedCharge;
-  }     
-  
+      mapParticleToTotalClusterCharge[particleId] += depositedCharge;    
+  }       
 
   // Loop over the particleIds to find the primary contributer to the cluster
   double maxCharge = 0;
@@ -166,7 +155,6 @@ void BackTracker::MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, 
       prtId = apair.first;
     }
   }
-
 
   // Check that we have some charge, if not then something is wrong so pass back all -5
   if (totalCharge > 0) {
@@ -178,17 +166,12 @@ void BackTracker::MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, 
     eff = -5;
     pur = -5;
     totalCharge = -5;
-    neutronCharge = -5;
   }
 
   logmessage = "BackTracker::MatchMCParticle: best particleId is : ";
   logmessage += std::to_string(prtId) + " which has PDG: " + std::to_string(prtPdg);
   Log(logmessage, v_message, verbosity);
 
-  if (neutronCharge > totalCharge/2. && prtPdg != 2112 ) {
-      logmessage = "BackTracker::MatchMCParticle: best should have been a neutron!";
-      Log(logmessage, v_warning, verbosity);
-  }
 }
 
 //------------------------------------------------------------------------------

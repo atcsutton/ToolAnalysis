@@ -30,7 +30,7 @@ class BackTracker: public Tool {
 
   bool LoadFromStores(); ///< Does all the loading so I can move it away from the Execute function
   void SumParticleTankCharge();
-  void MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, int &prtPdg, double &eff, double &pur, double &totalCharge, double &neutronCharge); ///< The meat and potatoes
+  void MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, int &prtPdg, double &eff, double &pur, double &totalCharge); ///< The meat and potatoes
   
  private:
 
@@ -56,7 +56,6 @@ class BackTracker: public Tool {
   std::map<double, double> *fClusterEfficiency        = nullptr;
   std::map<double, double> *fClusterPurity            = nullptr;
   std::map<double, double> *fClusterTotalCharge       = nullptr;
-  std::map<double, double> *fClusterNeutronCharge     = nullptr;
 
   /// \brief verbosity levels: if 'verbosity' < this level, the message type will be logged.
   int verbosity;
