@@ -30,6 +30,12 @@ bool ClusterSelector::Initialise(std::string configfile, DataModel &data)
   if (!gotUseMCHits) {
     Log("ClusterSelector: \"UseMCHits\" not set in the config! Aborting!", v_error, verbosity);
     return false;
+  } else {
+    bool gotPDGCut = m_variables.Get("PDGCut", fPDGCut);
+    if (!gotPDGCut) fPDGCut = -9999;
+
+    bool gotFindTrueCapts = m_variables.Get("FindTrueCapts", fFindTrueCapts);
+    if (!gotFindTrueCapts) fFindTrueCapts = 0;
   }
 
   bool gotMaxClusterCharge = m_variables.Get("MaxClusterCharge", fMaxClusterCharge);
@@ -85,11 +91,34 @@ bool ClusterSelector::Execute()
       return false;
     }
 
+    // If we're using the PDG then load what we need from backtracker
+    if (fPDGCut != -9999) {
+      bool goodClusterToBestParticlePDG = m_data->Stores.at("ANNIEEvent")->Get("ClusterToBestParticlePDG", fClusterToBestParticlePDG);
+      if (!goodClusterToBestParticlePDG) {
+	logmessage = "EvaluateVertex: no ClusterToBestParticlePDG in the ANNIEEvent!";
+	Log(logmessage, v_error, verbosity);
+	return false;
+      }
+    }
+
+    // If we're just considering true captures then load what we need from backtracker
+    if (fFindTrueCapts) {
+      bool goodClusterToBestParticleID = m_data->Stores.at("ANNIEEvent")->Get("ClusterToBestParticleID", fClusterToBestParticleID);
+      if (!goodClusterToBestParticleID) {
+	logmessage = "EvaluateVertex: no ClusterToBestParticleID in the ANNIEEvent!";
+	Log(logmessage, v_error, verbosity);
+	return false;
+      }
+
+    }
+
     fClusterMapOutMC->clear();
     FindClustersMC(clusterCBMap);
     
     m_data->Stores.at("ANNIEEvent")->Set(fClusterMapName,  fClusterMapOutMC);
+    
   } else {
+    
     bool gotClusters = m_data->CStore.Get("ClusterMap", fClusterMap);
     if(!gotClusters){
       logmessage = "ClusterSelector: No ClusterMap found! Aborting!";
@@ -100,6 +129,7 @@ bool ClusterSelector::Execute()
     fClusterMapOut->clear();
     FindClusters(clusterCBMap);
     m_data->Stores.at("ANNIEEvent")->Set(fClusterMapName, fClusterMapOut);
+    
   }
 
   return true;
@@ -135,7 +165,7 @@ void ClusterSelector::FindClusters(const std::map<double, double> &clusterCBMap)
 
     if ( passCut && chargeBalance > (fCBvQIntercept + chargeTotal/fCBvQSlopeInverse) )
       passCut = false;
-
+    
     if ( passCut )
       fClusterMapOut->emplace(cluster.first, cluster.second);
   }
@@ -144,6 +174,12 @@ void ClusterSelector::FindClusters(const std::map<double, double> &clusterCBMap)
 //------------------------------------------------------------------------------
 void ClusterSelector::FindClustersMC(const std::map<double, double> &clusterCBMap)
 {
+  if (fFindTrueCapts) {
+    FindTrueCaptures();
+    return;
+  }
+  
+  
   // Loop over input clusters
   for (auto cluster : *fClusterMapMC) {
     // Grab the charge balance
@@ -165,7 +201,43 @@ void ClusterSelector::FindClustersMC(const std::map<double, double> &clusterCBMa
     if ( passCut && chargeBalance > (fCBvQIntercept + chargeTotal/fCBvQSlopeInverse) )
       passCut = false;
 
-    if ( passCut )
+    if ( passCut && fPDGCut != -9999 && fClusterToBestParticlePDG->at(cluster.first) != fPDGCut )      
+      passCut = false;
+
+    if ( passCut ) {
       fClusterMapOutMC->emplace(cluster.first, cluster.second);
+
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
+void ClusterSelector::FindTrueCaptures()
+{
+  // Map of neutron capture info
+  std::map<std::string,std::vector<double>> fMCNeutCap;
+  bool goodMCNeutCap = m_data->Stores.at("ANNIEEvent")->Get("MCNeutCap", fMCNeutCap);
+  if (!goodMCNeutCap) {
+    logmessage = "EvaluateVertex: no MCNeutCap in the ANNIEEvent!";
+    Log(logmessage, v_error, verbosity);
+    return;
+  }
+
+  // Bail if no neutron captures in this event
+  if (!fMCNeutCap.size()) 
+    return;
+
+  // Grab the parent neutron's track ID and look for it in backtracker
+  std::vector<double> cptPrtIDs = fMCNeutCap["CaptParent"];
+
+  for (auto clusterTimeToParticleID : *fClusterToBestParticleID) {
+    double clustertime = clusterTimeToParticleID.first;
+    int id = clusterTimeToParticleID.second;
+    
+    for (auto cptPrtID : cptPrtIDs) {
+      if (cptPrtID == id) {
+  	fClusterMapOutMC->emplace(clustertime, fClusterMapMC->at(clustertime));
+      }
+    }
   }
 }

@@ -46,6 +46,7 @@ class EvaluateVertex: public Tool {
   std::map<double, Position>           *fVertexMap          = nullptr; // The vertices
   std::vector<MCParticle>              *fMCParticles        = nullptr; // The true particles from the event
   std::map<int, int>                   *fMCParticleIndexMap = nullptr; // Map between the particle Id and it's position in MCParticles vector
+  std::map<std::string,std::vector<double>> fMCNeutCap; // Map of neutron capture info
 
   // Backtracker results
   std::map<double, int>    *fClusterToBestParticleID  = nullptr;
@@ -61,8 +62,9 @@ class EvaluateVertex: public Tool {
   double fTrueVtxX, fTrueVtxY, fTrueVtxZ;
   double fRecoVtxX, fRecoVtxY, fRecoVtxZ;
   double fDistX, fDistY, fDistZ, fDist; 
-  int fBestPDG, fMoreNeutronQ;
-  double fEff, fPur, fTotalQ, fNeutronQ;
+  int fBestPDG, fNHits;
+  double fClusterTime;
+  double fEff, fPur, fTotalQ;
 
 
   /// \brief verbosity levels: if 'verbosity' < this level, the message type will be logged.

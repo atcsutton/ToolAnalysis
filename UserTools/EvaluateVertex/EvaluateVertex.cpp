@@ -46,29 +46,38 @@ bool EvaluateVertex::Execute()
   // Loop over all the clusters
   for (auto clusterPair : *fClusterMap) {
     // Grab all the stuff for this cluster
-    double clusterTime = clusterPair.first;
-    Position vertex = fVertexMap->at(clusterTime);
-    int bestPrtID = fClusterToBestParticleID->at(clusterTime);
+    fClusterTime = clusterPair.first;
+    Position vertex = fVertexMap->at(fClusterTime);
+    int bestPrtID = fClusterToBestParticleID->at(fClusterTime);
     int bestPrtIdx = fMCParticleIndexMap->at(bestPrtID);
 
-    fBestPDG = fClusterToBestParticlePDG->at(clusterTime);
-    fEff = fClusterEfficiency->at(clusterTime);
-    fPur = fClusterPurity->at(clusterTime);
-    fTotalQ = fClusterTotalCharge->at(clusterTime);
-    fNeutronQ = fClusterNeutronCharge->at(clusterTime);
-    if (fNeutronQ > fTotalQ/2.) fMoreNeutronQ = 1;
-    else fMoreNeutronQ = 0;
-
+    fBestPDG = fClusterToBestParticlePDG->at(fClusterTime);
+    fEff = fClusterEfficiency->at(fClusterTime);
+    fPur = fClusterPurity->at(fClusterTime);
+    fTotalQ = fClusterTotalCharge->at(fClusterTime);
+    fNHits = clusterPair.second.size();
+    
     fRecoVtxX = vertex.X();
     fRecoVtxY = vertex.Y();
     fRecoVtxZ = vertex.Z();
 
-    // The vertex should be the start location of the particle
-    MCParticle bestParticle = fMCParticles->at(bestPrtIdx);
-    Position trueVertex = bestParticle.GetStartVertex();
-    fTrueVtxX = trueVertex.X();
-    fTrueVtxY = trueVertex.Y();
-    fTrueVtxZ = trueVertex.Z();
+    // Check the neutron capture vertex
+    // these have units of cm
+    std::vector<double> cptPrtIDs = fMCNeutCap.at("CaptParent");
+    for (uint idx = 0; idx < cptPrtIDs.size(); ++idx) {
+      if (cptPrtIDs[idx] == bestPrtID) {
+	fTrueVtxX = fMCNeutCap.at("CaptVtxX")[idx]/100.;
+	fTrueVtxY = fMCNeutCap.at("CaptVtxY")[idx]/100.;
+	fTrueVtxZ = fMCNeutCap.at("CaptVtxZ")[idx]/100.;
+      }
+    }
+
+    // // The vertex should be the start location of the particle?
+    // MCParticle bestParticle = fMCParticles->at(bestPrtIdx);
+    // Position trueVertex = bestParticle.GetStartVertex();
+    // fTrueVtxX = trueVertex.X();
+    // fTrueVtxY = trueVertex.Y();
+    // fTrueVtxZ = trueVertex.Z();
 
     fDistX = fRecoVtxX - fTrueVtxX;
     fDistY = fRecoVtxY - fTrueVtxY;
@@ -107,11 +116,11 @@ void EvaluateVertex::SetupTTree()
   fOutTree->Branch("DistZ",        &fDistZ       );
   fOutTree->Branch("Dist",         &fDist        );
   fOutTree->Branch("BestPDG",      &fBestPDG     );
-  fOutTree->Branch("MoreNeutronQ", &fMoreNeutronQ);
+  fOutTree->Branch("NHits",        &fNHits       );
   fOutTree->Branch("Efficiency",   &fEff         );
   fOutTree->Branch("Purity",       &fPur         );
   fOutTree->Branch("TotalQ",       &fTotalQ      );
-  fOutTree->Branch("NeutronQ",     &fNeutronQ    );
+  fOutTree->Branch("ClusterTime",  &fClusterTime );
 
 
 }
@@ -196,5 +205,13 @@ bool EvaluateVertex::LoadFromStores()
     return false;
   }
 
+  bool goodMCNeutCap = m_data->Stores.at("ANNIEEvent")->Get("MCNeutCap", fMCNeutCap);
+  if (!goodMCNeutCap) {
+    logmessage = "EvaluateVertex: no MCNeutCap in the ANNIEEvent!";
+    Log(logmessage, v_error, verbosity);
+    return false;
+  }
+
+  
   return true;
 }

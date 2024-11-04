@@ -29,7 +29,8 @@ class ClusterSelector: public Tool {
 
   void FindClusters(const std::map<double, double> &clusterCBMap);
   void FindClustersMC(const std::map<double, double> &clusterCBMap);
-		      
+
+  void FindTrueCaptures();
 
  private:
 
@@ -39,15 +40,23 @@ class ClusterSelector: public Tool {
   double fCBvQIntercept;
   double fCBvQSlopeInverse;
   bool fUseMCHits;
+  int fPDGCut;
+  bool fFindTrueCapts;
   std::string fClusterMapName;
 
   // The clusters we'll load from the CStore
   std::map<double, std::vector<Hit>>   *fClusterMap   = nullptr;
   std::map<double, std::vector<MCHit>> *fClusterMapMC = nullptr;
 
+  
   // The clusters we'll save to the ANNIEEvent
   std::map<double, std::vector<Hit>>   *fClusterMapOut   = nullptr;
   std::map<double, std::vector<MCHit>> *fClusterMapOutMC = nullptr;
+
+  // Backtracker results if we need them
+  std::map<double, int>    *fClusterToBestParticleID  = nullptr;
+  std::map<double, int>    *fClusterToBestParticlePDG = nullptr;
+
 
   /// \brief verbosity levels: if 'verbosity' < this level, the message type will be logged.
   int verbosity;

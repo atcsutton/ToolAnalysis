@@ -8,6 +8,9 @@
 #include "Position.h"
 #include "Hit.h"
 
+#include "TFile.h"
+#include "TTree.h"
+
 
 /**
  * \class TimeGridVertex
@@ -39,6 +42,11 @@ class TimeGridVertex: public Tool {
   void RunLoop();
   void RunLoopMC();
 
+  // Filter hits based on time separation and causality
+  std::vector<MCHit> FilterHitsMC(std::vector<MCHit> hits);
+    
+  void SetupDebugTree();
+
  private:
 
   // Configuration parameters
@@ -46,6 +54,8 @@ class TimeGridVertex: public Tool {
   bool fUseMCHits;
   double fInitialSpacing;
   double fMinSpacing;
+  int fNumNodes;
+  bool fDebugTree;
   
   // The ANNIE geometry service
   Geometry *fGeom = nullptr;
@@ -62,8 +72,20 @@ class TimeGridVertex: public Tool {
   int fNY;
   int fNZ;
 
-  // Speed of light in water, m/s
-  const double fSoL = 299792458 * 3/4; 
+  // Output ROOT file for debug ttree
+  TFile *fOutFile;
+  TTree *fVtxTree;
+  TTree *fHitTree;
+  int fEventNum, fLoopCount;
+  double fVtxX, fVtxY, fVtxZ;
+  double fRMSt;
+  double fHitX, fHitY, fHitZ;
+  double fHitT0; 
+  double fEff, fPur, fTotalQ, fNeutronQ;
+
+
+  // Speed of light in water, m/ns
+  const double fSoL = 0.299792458 * 3/4; 
 
   /// \brief verbosity levels: if 'verbosity' < this level, the message type will be logged.
   int verbosity;

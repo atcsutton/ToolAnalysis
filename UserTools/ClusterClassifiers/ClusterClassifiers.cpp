@@ -113,11 +113,11 @@ bool ClusterClassifiers::Execute(){
   bool found_prompt_muon = this->IdentifyPromptMuonCluster(ClusterTotalPEs);
 
   //store indices of muon and neutron clusters to ANNIEEvent Store
-  m_data->Stores.at("RecoEvent")->Set("ClusterIndexPromptMuon", prompt_muon_index);
-  if (found_prompt_muon){
-    m_data->Stores.at("RecoEvent")->Set("PromptMuonTotalPE", ClusterTotalPEs.at(ClusterTimes.at(prompt_muon_index)));
-    m_data->Stores.at("RecoEvent")->Set("PromptMuonTime", ClusterTimes.at(prompt_muon_index));
-  }
+  // m_data->Stores.at("RecoEvent")->Set("ClusterIndexPromptMuon", prompt_muon_index);
+  // if (found_prompt_muon){
+  //   m_data->Stores.at("RecoEvent")->Set("PromptMuonTotalPE", ClusterTotalPEs.at(ClusterTimes.at(prompt_muon_index)));
+  //   m_data->Stores.at("RecoEvent")->Set("PromptMuonTime", ClusterTimes.at(prompt_muon_index));
+  // }
 
   return true;
 }
@@ -222,8 +222,8 @@ double ClusterClassifiers::CalculateChargeBalance(std::vector<Hit> cluster_hits)
     total_Q+= tube_charge;
     total_QSquared += (tube_charge * tube_charge);
   }
-  //FIXME: Need a method to have the 123 be equal to the number of operating detectors
-  double charge_balance  = sqrt((total_QSquared)/(total_Q*total_Q) - (1./123.));
+  //FIXME: Need a method to have the 1/N be equal to the number of operating detectors
+  double charge_balance  = sqrt((total_QSquared)/(total_Q*total_Q) - (1./121.));
   if(verbosity>4) std::cout << "ClusterClassifiers Tool: Calculated charge balance of " << charge_balance << std::endl;
   return charge_balance;
 }
@@ -249,8 +249,8 @@ double ClusterClassifiers::CalculateChargeBalanceMC(std::vector<MCHit> cluster_h
      total_Q+= tube_charge;
      total_QSquared += (tube_charge * tube_charge);
    }
-   //FIXME: Need a method to have the 123 be equal to the number of operating detectors
-   double charge_balance  = sqrt((total_QSquared)/(total_Q*total_Q) - (1./123.));
+   //FIXME: Need a method to have the 1/N be equal to the number of operating detectors
+   double charge_balance  = sqrt((total_QSquared)/(total_Q*total_Q) - (1./121.));
    if(verbosity>4) std::cout << "ClusterClassifiers Tool: Calculated charge balance of " << charge_balance << std::endl;
    return charge_balance;
  }

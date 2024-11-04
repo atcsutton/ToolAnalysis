@@ -23,13 +23,18 @@ bool PhaseIITreeMaker::Initialise(std::string configfile, DataModel &data){
   m_variables.Get("MCTruth_fill", MCTruth_fill);
   m_variables.Get("MRDReco_fill", MRDReco_fill);
   m_variables.Get("TankReco_fill", TankReco_fill);
+  m_variables.Get("Reweight_fill", Reweight_fill);
   m_variables.Get("RecoDebug_fill", RecoDebug_fill);
+  m_variables.Get("SimpleReco_fill", SimpleReco_fill);
+  m_variables.Get("RingCounting_fill", RingCounting_fill);
   m_variables.Get("muonTruthRecoDiff_fill", muonTruthRecoDiff_fill);
 
   m_variables.Get("SiPMPulseInfo_fill",SiPMPulseInfo_fill);
   m_variables.Get("TankClusterProcessing",TankClusterProcessing);
   m_variables.Get("MRDClusterProcessing",MRDClusterProcessing);
   m_variables.Get("TriggerProcessing",TriggerProcessing);
+  
+  m_variables.Get("Digit_fill",Digit_fill);
 
   std::string output_filename;
   m_variables.Get("OutputFile", output_filename);
@@ -101,6 +106,7 @@ bool PhaseIITreeMaker::Initialise(std::string configfile, DataModel &data){
       fPhaseIITankClusterTree->Branch("SiPM1NPulses",&fSiPM1NPulses,"SiPM1NPulses/I");
       fPhaseIITankClusterTree->Branch("SiPM2NPulses",&fSiPM2NPulses,"SiPM2NPulses/I");
     }
+
   } 
 
   if(MRDClusterProcessing){
@@ -156,6 +162,7 @@ bool PhaseIITreeMaker::Initialise(std::string configfile, DataModel &data){
       fPhaseIIMRDClusterTree->Branch("MRDStop",&fMRDStop);
       fPhaseIIMRDClusterTree->Branch("MRDThrough",&fMRDThrough);
     }
+
   }
 
   if(TriggerProcessing){
@@ -164,6 +171,19 @@ bool PhaseIITreeMaker::Initialise(std::string configfile, DataModel &data){
     fPhaseIITrigTree->Branch("subrunNumber",&fSubrunNumber,"subrunNumber/I");
     fPhaseIITrigTree->Branch("runType",&fRunType,"runType/I");
     fPhaseIITrigTree->Branch("startTime",&fStartTime_Tree,"startTime/l");
+    
+    
+ //DIGITS   
+  if(Digit_fill){
+      fPhaseIITrigTree->Branch("digitX",&fdigitX);
+      fPhaseIITrigTree->Branch("digitY",&fdigitY);
+      fPhaseIITrigTree->Branch("digitZ",&fdigitZ);
+      fPhaseIITrigTree->Branch("digitT",&fdigitT);
+      fPhaseIITrigTree->Branch("NDigitsPMTs",&fNDigitsPMTs);
+      fPhaseIITrigTree->Branch("NDigitsLAPPDs",&fNDigitsLAPPDs);
+      
+    }
+ //DIGITS   
 
     //Some lower level information to save
     fPhaseIITrigTree->Branch("eventNumber",&fEventNumber,"eventNumber/I");
@@ -260,7 +280,37 @@ bool PhaseIITreeMaker::Initialise(std::string configfile, DataModel &data){
       fPhaseIITrigTree->Branch("recoVtxFOM",&fRecoVtxFOM,"recoVtxFOM/D");
       fPhaseIITrigTree->Branch("recoStatus",&fRecoStatus,"recoStatus/I");
     }
-  
+
+    //Michael's Simple Reconstruction
+    if(SimpleReco_fill){
+      fPhaseIITrigTree->Branch("simpleRecoFlag",&fSimpleFlag,"simpleRecoFlag/I");
+      fPhaseIITrigTree->Branch("simpleRecoEnergy",&fSimpleEnergy,"simpleRecoEnergy/D");
+      fPhaseIITrigTree->Branch("simpleRecoVtxX",&fSimpleVtxX,"simpleRecoVtxX/D");
+      fPhaseIITrigTree->Branch("simpleRecoVtxY",&fSimpleVtxY,"simpleRecoVtxY/D");
+      fPhaseIITrigTree->Branch("simpleRecoVtxZ",&fSimpleVtxZ,"simpleRecoVtxZ/D");
+      fPhaseIITrigTree->Branch("simpleRecoStopVtxX",&fSimpleStopVtxX,"simpleRecoStopVtxX/D");
+      fPhaseIITrigTree->Branch("simpleRecoStopVtxY",&fSimpleStopVtxY,"simpleRecoStopVtxY/D");
+      fPhaseIITrigTree->Branch("simpleRecoStopVtxZ",&fSimpleStopVtxZ,"simpleRecoStopVtxZ/D");
+      fPhaseIITrigTree->Branch("simpleRecoCosTheta",&fSimpleCosTheta,"simpleRecoCosTheta/D");
+      fPhaseIITrigTree->Branch("simpleRecoPt",&fSimplePt,"simpleRecoPt/D");
+      fPhaseIITrigTree->Branch("simpleRecoFV",&fSimpleFV,"simpleRecoFV/I");
+      fPhaseIITrigTree->Branch("simpleRecoMrdEnergyLoss",&fSimpleMrdEnergyLoss,"simpleRecoMrdEnergyLoss/D");
+      fPhaseIITrigTree->Branch("simpleRecoTrackLengthInMRD",&fSimpleTrackLengthInMRD,"simpleRecoTrackLengthInMRD/D");
+      fPhaseIITrigTree->Branch("simpleRecoMRDStartX",&fSimpleMRDStartX,"simpleRecoMRDStartX/D");
+      fPhaseIITrigTree->Branch("simpleRecoMRDStartY",&fSimpleMRDStartY,"simpleRecoMRDStartY/D");
+      fPhaseIITrigTree->Branch("simpleRecoMRDStartZ",&fSimpleMRDStartZ,"simpleRecoMRDStartZ/D");
+      fPhaseIITrigTree->Branch("simpleRecoMRDStopX",&fSimpleMRDStopX,"simpleRecoMRDStopX/D");
+      fPhaseIITrigTree->Branch("simpleRecoMRDStopY",&fSimpleMRDStopY,"simpleRecoMRDStopY/D");
+      fPhaseIITrigTree->Branch("simpleRecoMRDStopZ",&fSimpleMRDStopZ,"simpleRecoMRDStopZ/D");
+      fPhaseIITrigTree->Branch("simpleRecoTrackLengthInTank",&fSimpleTrackLengthInTank,"simpleRecoTrackLengthInTank/D");
+    }
+ 
+    //Ring Counting
+    if(RingCounting_fill){
+      fPhaseIITrigTree->Branch("RCSRPred",&fRCSRPred,"RCSRPred/D");
+      fPhaseIITrigTree->Branch("RCMRPred",&fRCMRPred,"RCMRPred/D");
+    }
+ 
     //MC truth information for muons
     //Output to tree when MCTruth_fill = 1 in config
     if (MCTruth_fill){
@@ -342,6 +392,36 @@ bool PhaseIITreeMaker::Initialise(std::string configfile, DataModel &data){
       fPhaseIITrigTree->Branch("trueKMinus",&fTrueKMinus,"trueKMinus/I");
       fPhaseIITrigTree->Branch("trueKMinusCher",&fTrueKMinusCher,"trueKMinusCher/I"); 
     }
+
+    if (Reweight_fill){
+      fPhaseIITrigTree->Branch("XSecWeights",&fxsec_weights);
+      fPhaseIITrigTree->Branch("FluxWeights",&fflux_weights);
+      fPhaseIITrigTree->Branch("weight_All_UBGenie",&fAll);
+      fPhaseIITrigTree->Branch("weight_AxFFCCQEshape_UBGenie",&fAxFFCCQEshape);
+      fPhaseIITrigTree->Branch("weight_DecayAngMEC_UBGenie",&fDecayAngMEC);
+      fPhaseIITrigTree->Branch("weight_NormCCCOH_UBGenie",&fNormCCCOH);
+      fPhaseIITrigTree->Branch("weight_Norm_NCCOH_UBGenie",&fNorm_NCCOH);
+      fPhaseIITrigTree->Branch("weight_RPA_CCQE_UBGenie",&fRPA_CCQE);
+      fPhaseIITrigTree->Branch("weight_RootinoFix_UBGenie",&fRootinoFix);
+      fPhaseIITrigTree->Branch("weight_ThetaDelta2NRad_UBGenie",&fThetaDelta2NRad);
+      fPhaseIITrigTree->Branch("weight_Theta_Delta2Npi_UBGenie",&fTheta_Delta2Npi);
+      fPhaseIITrigTree->Branch("weight_TunedCentralValue_UBGenie",&fTunedCentralValue);
+      fPhaseIITrigTree->Branch("weight_VecFFCCQEshape_UBGenie",&fVecFFCCQEshape);
+      fPhaseIITrigTree->Branch("weight_XSecShape_CCMEC_UBGenie",&fXSecShape_CCMEC); 
+      fPhaseIITrigTree->Branch("weight_horncurrent_FluxUnisim",&fhorncurrent);
+      fPhaseIITrigTree->Branch("weight_expskin_FluxUnisim",&fexpskin);
+      fPhaseIITrigTree->Branch("weight_piplus_PrimaryHadronSWCentralSplineVariation",&fpiplus);
+      fPhaseIITrigTree->Branch("weight_piminus_PrimaryHadronSWCentralSplineVariation",&fpiminus);
+      fPhaseIITrigTree->Branch("weight_kplus_PrimaryHadronFeynmanScaling",&fkplus);
+      fPhaseIITrigTree->Branch("weight_kzero_PrimaryHadronSanfordWang",&fkzero);
+      fPhaseIITrigTree->Branch("weight_kminus_PrimaryHadronNormalization",&fkminus);
+      fPhaseIITrigTree->Branch("weight_pioninexsec_FluxUnisim",&fpioninexsec);
+      fPhaseIITrigTree->Branch("weight_pionqexsec_FluxUnisim",&fpionqexsec);
+      fPhaseIITrigTree->Branch("weight_piontotxsec_FluxUnisim",&fpiontotxsec);
+      fPhaseIITrigTree->Branch("weight_nucleoninexsec_FluxUnisim",&fnucleoninexsec);
+      fPhaseIITrigTree->Branch("weight_nucleonqexsec_FluxUnisim",&fnucleonqexsec);
+      fPhaseIITrigTree->Branch("weight_nucleontotxsec_FluxUnisim",&fnucleontotxsec);
+    } 
   
     // Reconstructed variables from each step in Muon Reco Analysis
     // Currently output when RecoDebug_fill = 1 in config 
@@ -420,8 +500,6 @@ bool PhaseIITreeMaker::Execute(){
       return true;	
     }
   }
-
-
 
   if(TankClusterProcessing){
     Log("PhaseIITreeMaker Tool: Beginning Tank cluster processing",v_debug,verbosity);
@@ -574,7 +652,7 @@ bool PhaseIITreeMaker::Execute(){
       } 
     }
   }
-
+  
   if(MRDClusterProcessing){
     Log("PhaseIITreeMaker Tool: Beginning MRD cluster processing",v_debug,verbosity);
 
@@ -770,7 +848,36 @@ bool PhaseIITreeMaker::Execute(){
     if(SiPMPulseInfo_fill) this->LoadSiPMHits();
  
     if(MRDHitInfo_fill) this->LoadAllMRDHits(isData);
-
+    
+    //DIGITS
+    if(Digit_fill) this->LoadDigitHits();
+    //DIGITS
+    /*/
+    if(Digit_fill){
+       // get digits from RecoDigit store
+       std::vector<RecoDigit>* digitList;
+       auto get_digits=m_data->Stores.at("RecoEvent")->Get("RecoDigit", digitList);
+       if(not get_digits){
+         Log("PhaseIITreeMaker Tool: Failed to retrieve the RecoDigit from RecoEvent Store!",v_error,verbosity);
+         return false;
+       }
+       // Extract the PMT & LAPPD digit information
+       // ===============================
+       int totalPMTs =0; // number of digits from PMT hits in the event
+       int totalLAPPDs = 0; // number of digits from LAPPD hits in the event
+       //loop through all digits
+       for(RecoDigit &adigit : *digitList){
+	   digitX.push_back(adigit.GetPosition().X());
+	   digitY.push_back(adigit.GetPosition().Y());
+	   digitZ.push_back(adigit.GetPosition().Z());
+	   digitT.push_back(adigit.GetCalTime());
+	   if(adigit.GetDigitType()==0){totalPMTs+=1;} //when the digit type is zero we have a PMT digit
+	   else{totalLAPPDs+=1;}// when it is 1 we have LAPPD
+       }
+       Log("PhaseIITreeMaker Tool: Got "+to_string(totalPMTs)+" PMT digits; "+to_string(digitT.size()) +" total digits so far",v_debug,verbosity);
+       Log("PhaseIITreeMaker Tool: Got "+to_string(totalLAPPDs)+" LAPPD digits; "+to_string(digitT.size()) +" total digits",v_debug,verbosity);
+    }
+/*/
 
     if(MRDReco_fill){
       fNumClusterTracks=0;
@@ -781,6 +888,12 @@ bool PhaseIITreeMaker::Execute(){
       }
       for(int i=0; i < (int) MrdTimeClusters.size(); i++) fNumClusterTracks += this->LoadMRDTrackReco(i);
     }
+
+    if(SimpleReco_fill) this->FillSimpleRecoInfo();
+
+    if(RingCounting_fill) this->FillRingCountingInfo();
+
+    if(Reweight_fill) this->FillWeightInfo();
 
     bool got_reco = false;
     if(TankReco_fill) got_reco = this->FillTankRecoInfo();
@@ -817,6 +930,8 @@ void PhaseIITreeMaker::ResetVariables() {
   fEventNumber = -9999;
   fEventTimeTank_Tree = 9999;
   fNHits = -9999;
+  fNDigitsPMTs = -9999;
+  fNDigitsLAPPDs = -9999;
   fVetoHit = -9999;
   fEventTimeMRD_Tree = 9999;
   fTriggerword = -1;
@@ -919,6 +1034,34 @@ void PhaseIITreeMaker::ResetVariables() {
     fTrueKMinusCher = -9999;
   }
 
+  if (Reweight_fill){
+    fAll.clear();
+    fAxFFCCQEshape.clear();
+    fDecayAngMEC.clear();
+    fNormCCCOH.clear();
+    fNorm_NCCOH.clear();
+    fRPA_CCQE.clear();
+    fRootinoFix.clear();
+    fThetaDelta2NRad.clear();
+    fTheta_Delta2Npi.clear();
+    fTunedCentralValue.clear();
+    fVecFFCCQEshape.clear();
+    fXSecShape_CCMEC.clear();
+    fpiplus.clear();
+    fpiminus.clear();
+    fkplus.clear();
+    fkzero.clear();
+    fkminus.clear();
+    fhorncurrent.clear();
+    fpioninexsec.clear();
+    fpionqexsec.clear();
+    fpiontotxsec.clear();
+    fexpskin.clear();
+    fnucleoninexsec.clear();
+    fnucleonqexsec.clear();
+    fnucleontotxsec.clear();
+  }
+
   if (RecoDebug_fill){ 
     fSeedVtxX.clear();
     fSeedVtxY.clear();
@@ -996,7 +1139,32 @@ void PhaseIITreeMaker::ResetVariables() {
     fMRDStop.clear();
     fMRDThrough.clear();
   }
-
+  if(SimpleReco_fill){
+    fSimpleFlag = -9999;
+    fSimpleEnergy = -9999;
+    fSimpleVtxX = -9999;
+    fSimpleVtxY = -9999;
+    fSimpleVtxZ = -9999;
+    fSimpleStopVtxX = -9999;
+    fSimpleStopVtxY = -9999;
+    fSimpleStopVtxZ = -9999;
+    fSimpleCosTheta = -9999;
+    fSimplePt = -9999;
+    fSimpleFV = -9999;
+    fSimpleMrdEnergyLoss = -9999;
+    fSimpleTrackLengthInMRD = -9999;
+    fSimpleTrackLengthInTank = -9999;
+    fSimpleMRDStartX = -9999;
+    fSimpleMRDStartY = -9999;
+    fSimpleMRDStartZ = -9999;
+    fSimpleMRDStopX = -9999;
+    fSimpleMRDStopY = -9999;
+    fSimpleMRDStopZ = -9999;
+  }
+  if(RingCounting_fill){
+    fRCSRPred = -9999;
+    fRCMRPred = -9999;
+  }
   if(TankHitInfo_fill){
     fIsFiltered.clear();
     fHitX.clear();
@@ -1023,6 +1191,16 @@ void PhaseIITreeMaker::ResetVariables() {
     fDeltaZenith = -9999;
     fDeltaAngle = -9999;
   }
+  
+  //DIGITS
+  if (Digit_fill){
+    fdigitX.clear();
+    fdigitY.clear();
+    fdigitZ.clear();
+    fdigitT.clear();
+    }
+   //DIGITS 
+  
 }
 
 bool PhaseIITreeMaker::LoadTankClusterClassifiers(double cluster_time){
@@ -1248,6 +1426,36 @@ void PhaseIITreeMaker::LoadAllMRDHits(bool IsData){
   return;
 }
 
+
+//DIGITS  
+void PhaseIITreeMaker::LoadDigitHits(){
+    // get digits from RecoDigit store
+       std::vector<RecoDigit>* digitList;
+       bool get_digits=false;
+       get_digits=m_data->Stores.at("RecoEvent")->Get("RecoDigit", digitList);
+       if(!get_digits){
+         Log("PhaseIITreeMaker Tool: Failed to retrieve the RecoDigit from RecoEvent Store!",v_error,verbosity);
+         return;
+          }
+   // Extract the PMT & LAPPD digit information
+   // ===============================
+        int totalPMTs =0; // number of digits from PMT hits in the event
+        int totalLAPPDs = 0; // number of digits from LAPPD hits in the event
+  //loop through all digits
+        for(RecoDigit &adigit : *digitList){
+	   fdigitX.push_back(adigit.GetPosition().X());
+	   fdigitY.push_back(adigit.GetPosition().Y());
+	   fdigitZ.push_back(adigit.GetPosition().Z());
+	   fdigitT.push_back(adigit.GetCalTime());
+	   if(adigit.GetDigitType()==0){fNDigitsPMTs+=1;} //when the digit type is zero we have a PMT digit
+	   else{fNDigitsLAPPDs+=1;}// when it is 1 we have LAPPD
+           }
+        Log("PhaseIITreeMaker Tool: Got "+to_string(totalPMTs)+" PMT digits; "+to_string(fdigitT.size()) +" total digits so far",v_debug,verbosity);
+        Log("PhaseIITreeMaker Tool: Got "+to_string(totalLAPPDs)+" LAPPD digits; "+to_string(fdigitT.size()) +" total digits",v_debug,verbosity);
+   return;
+}       
+//DIGITS
+
 int PhaseIITreeMaker::LoadMRDTrackReco(int SubEventID) {
   //Check for valid track criteria
   m_data->Stores["MRDTracks"]->Get("MRDTracks",theMrdTracks);
@@ -1447,6 +1655,75 @@ bool PhaseIITreeMaker::FillTankRecoInfo() {
     fRecoStatus = recovtx->GetStatus();
   }
   return got_reco_info;
+}
+
+void PhaseIITreeMaker::FillRingCountingInfo() {
+  auto* reco_event = m_data->Stores["RecoEvent"];
+  if (!reco_event) {
+    Log("Error: The PhaseIITreeMaker tool could not find the RecoEvent Store", v_error, verbosity);
+  }
+  double RCSRPred;
+  double RCMRPred;
+  auto get_sr = m_data->Stores["RecoEvent"]->Get("RingCountingSRPrediction",RCSRPred);
+  auto get_mr = m_data->Stores["RecoEvent"]->Get("RingCountingMRPrediction",RCMRPred);
+
+  if(get_sr && get_mr){
+    fRCSRPred = RCSRPred;
+    fRCMRPred = RCMRPred;
+  }
+  else Log("Error: PhaseIITreeMaker tool could not find RingCountingPrediction from RecoEvent Store", v_error, verbosity); 
+  return;
+}
+
+void PhaseIITreeMaker::FillSimpleRecoInfo() {
+  auto* reco_event = m_data->Stores["RecoEvent"];
+  if (!reco_event) {
+    Log("Error: The PhaseITreeMaker tool could not find the RecoEvent Store", v_error, verbosity);
+  }
+  int SimpleRecoFlag;
+  bool SimpleRecoFV;
+  double SimpleRecoEnergy, SimpleRecoCosTheta, SimpleRecoPt, SimpleRecoMrdEnergyLoss, SimpleRecoTrackLengthInMRD;
+  double SimpleRecoTrackLengthInTank;
+  Position SimpleRecoVtx;
+  Position SimpleRecoStopVtx;
+  Position SimpleRecoMRDStart;
+  Position SimpleRecoMRDStop;
+  auto get_flag = m_data->Stores["RecoEvent"]->Get("SimpleRecoFlag",SimpleRecoFlag);
+  auto get_energy = m_data->Stores["RecoEvent"]->Get("SimpleRecoEnergy",SimpleRecoEnergy);
+  auto get_vtx = m_data->Stores["RecoEvent"]->Get("SimpleRecoVtx",SimpleRecoVtx);
+  auto get_stopvtx = m_data->Stores["RecoEvent"]->Get("SimpleRecoStopVtx",SimpleRecoStopVtx);
+  auto get_cos = m_data->Stores["RecoEvent"]->Get("SimpleRecoCosTheta",SimpleRecoCosTheta);
+  auto get_pt = m_data->Stores["RecoEvent"]->Get("SimpleRecoPt",SimpleRecoPt);
+  auto get_fv = m_data->Stores["RecoEvent"]->Get("SimpleRecoFV",SimpleRecoFV);
+  auto get_mrdenergy = m_data->Stores["RecoEvent"]->Get("SimpleRecoMrdEnergyLoss",SimpleRecoMrdEnergyLoss);
+  auto get_mrdtrack = m_data->Stores["RecoEvent"]->Get("SimpleRecoTrackLengthInMRD",SimpleRecoTrackLengthInMRD);
+  auto get_tanktrack = m_data->Stores["RecoEvent"]->Get("SimpleRecoTrackLengthInTank",SimpleRecoTrackLengthInTank);
+  auto get_mrdstart = m_data->Stores["RecoEvent"]->Get("SimpleRecoMRDStart",SimpleRecoMRDStart);
+  auto get_mrdstop = m_data->Stores["RecoEvent"]->Get("SimpleRecoMRDStop",SimpleRecoMRDStop); 
+
+  if(get_flag && get_energy && get_vtx && get_stopvtx && get_cos && get_pt && get_fv && get_mrdenergy && get_mrdtrack && get_mrdstart && get_mrdstop){
+    fSimpleFlag = SimpleRecoFlag;
+    fSimpleEnergy = SimpleRecoEnergy;
+    fSimpleVtxX = SimpleRecoVtx.X();
+    fSimpleVtxY = SimpleRecoVtx.Y();
+    fSimpleVtxZ = SimpleRecoVtx.Z();
+    fSimpleStopVtxX = SimpleRecoStopVtx.X();
+    fSimpleStopVtxY = SimpleRecoStopVtx.Y();
+    fSimpleStopVtxZ = SimpleRecoStopVtx.Z();
+    fSimpleCosTheta = SimpleRecoCosTheta;
+    fSimplePt = SimpleRecoPt;
+    fSimpleFV = (SimpleRecoFV)? 1 : 0;
+    fSimpleMrdEnergyLoss = SimpleRecoMrdEnergyLoss;
+    fSimpleTrackLengthInMRD = SimpleRecoTrackLengthInMRD;
+    fSimpleTrackLengthInTank = SimpleRecoTrackLengthInTank;
+    fSimpleMRDStartX = SimpleRecoMRDStart.X();
+    fSimpleMRDStartY = SimpleRecoMRDStart.Y();
+    fSimpleMRDStartZ = SimpleRecoMRDStart.Z();
+    fSimpleMRDStopX = SimpleRecoMRDStop.X();
+    fSimpleMRDStopY = SimpleRecoMRDStop.Y();
+    fSimpleMRDStopZ = SimpleRecoMRDStop.Z();
+  }
+  return;
 }
 
 void PhaseIITreeMaker::FillRecoDebugInfo() {
@@ -1757,6 +2034,38 @@ bool PhaseIITreeMaker::FillMCTruthInfo() {
   } // end if hasGenie
 
   return successful_load;
+}
+
+void PhaseIITreeMaker::FillWeightInfo() {
+  bool get_xsec_weights = m_data->Stores.at("ANNIEEvent")->Get("xsec_weights",fxsec_weights);
+  bool get_flux_weights = m_data->Stores.at("ANNIEEvent")->Get("flux_weights",fflux_weights);
+  if (get_xsec_weights && get_flux_weights){
+    fAll = fxsec_weights["All"];
+    fAxFFCCQEshape = fxsec_weights["AxFFCCQEshape"];
+    fDecayAngMEC = fxsec_weights["DecayAngMEC"];
+    fNormCCCOH = fxsec_weights["NormCCCOH"];
+    fNorm_NCCOH = fxsec_weights["Norm_NCCOH"];
+    fRPA_CCQE = fxsec_weights["RPA_CCQE"];
+    fRootinoFix = fxsec_weights["RootinoFix"];
+    fThetaDelta2NRad = fxsec_weights["ThetaDelta2NRad"];
+    fTheta_Delta2Npi = fxsec_weights["Theta_Delta2Npi"];
+    fTunedCentralValue = fxsec_weights["TunedCentralValue"];
+    fVecFFCCQEshape = fxsec_weights["VecFFCCQEshape"];
+    fXSecShape_CCMEC = fxsec_weights["XSecShape_CCMEC"];
+    fhorncurrent = fflux_weights["horncurrent_FluxUnisim"];
+    fexpskin = fflux_weights["expskin_FluxUnisim"];
+    fpiplus = fflux_weights["piplus_PrimaryHadronSWCentralSplineVariation"];
+    fpiminus = fflux_weights["piminus_PrimaryHadronSWCentralSplineVariation"];
+    fkplus = fflux_weights["kplus_PrimaryHadronFeynmanScaling"];
+    fkzero = fflux_weights["kzero_PrimaryHadronSanfordWang"];
+    fkminus = fflux_weights["kminus_PrimaryHadronNormalization"];
+    fpioninexsec = fflux_weights["pioninexsec_FluxUnisim"];
+    fpionqexsec = fflux_weights["pionqexsec_FluxUnisim"];
+    fpiontotxsec = fflux_weights["piontotxsec_FluxUnisim"];
+    fnucleoninexsec = fflux_weights["nucleoninexsec_FluxUnisim"];
+    fnucleonqexsec = fflux_weights["nucleonqexsec_FluxUnisim"];
+    fnucleontotxsec = fflux_weights["nucleontotxsec_FluxUnisim"];
+  }
 }
 
 void PhaseIITreeMaker::FillTruthRecoDiffInfo(bool successful_mcload,bool successful_recoload) {

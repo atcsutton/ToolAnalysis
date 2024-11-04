@@ -44,6 +44,20 @@ bool TimeGridVertex::Initialise(std::string configfile, DataModel &data)
     Log("TimeGridVertex: \"fMinSpacing\" not set in the config! Using 0.005 (0.5 cm).", v_warning, verbosity); // 
   }
 
+  bool gotNumNodes = m_variables.Get("NumNodes", fNumNodes);
+  if (!gotNumNodes) {
+    fNumNodes = 5;
+    Log("TimeGridVertex: \"fNumNodes\" not set in the config! Using 5.", v_warning, verbosity); // 
+  }
+
+  
+  bool gotDebugTree = m_variables.Get("DebugTree", fDebugTree);
+  if (!gotDebugTree) {
+    fDebugTree = 0;
+    Log("TimeGridVertex: \"fDebugTree\" not set in the config! Using 0 (false).", v_warning, verbosity); // 
+  } else {
+    SetupDebugTree();
+  }
 
   // Load the geometry service
   bool gotGeometry = m_data->Stores.at("ANNIEEvent")->Header->Get("AnnieGeometry",fGeom);
@@ -56,14 +70,14 @@ bool TimeGridVertex::Initialise(std::string configfile, DataModel &data)
   fNX = int(fGeom->GetPMTEnclosedRadius()*2 / fInitialSpacing);
   fNY = int(fGeom->GetPMTEnclosedHalfheight()*2 / fInitialSpacing);
   fNZ = int(fGeom->GetPMTEnclosedRadius()*2 / fInitialSpacing);
-
-  logmessage = "TimeGridVertex: Number of nodes (X, Y, Z): (" + std::to_string(fNX);
-  logmessage += ", " + std::to_string(fNY) + ", " + std::to_string(fNZ) + ")";
-  Log(logmessage, v_error, verbosity);
+  //  fNX = fNumNodes; fNY = fNumNodes; fNZ = fNumNodes; 
 
   // Set up the pointer we're going to save. No need to 
   // delete it at Finalize, the store will handle it
   fVertexMap = new std::map<double, Position>;
+
+  // Initialize some things
+  fEventNum = 0;
   
   return true;
 }
@@ -92,6 +106,8 @@ bool TimeGridVertex::Execute()
   }
   
   m_data->Stores.at("ANNIEEvent")->Set("TimeGridVertexMap",  fVertexMap);
+
+  ++fEventNum;
   
   return true;
 }
@@ -99,7 +115,13 @@ bool TimeGridVertex::Execute()
 //------------------------------------------------------------------------------
 bool TimeGridVertex::Finalise()
 {
-
+  if (fDebugTree) {
+    fOutFile->cd();
+    fVtxTree->Write();
+    fHitTree->Write();
+    fOutFile->Close();
+  }
+  
   return true;
 }
 
@@ -107,6 +129,22 @@ bool TimeGridVertex::Finalise()
 std::vector<Position> TimeGridVertex::GenerateVetices(const Position &center, double spacing)
 {
   std::vector<Position> vertices;
+
+  // if (fLoopCount == 0) {
+  //     fNX = int(fGeom->GetPMTEnclosedRadius()*2 / fInitialSpacing);
+  //     fNY = int(fGeom->GetPMTEnclosedHalfheight()*2 / fInitialSpacing);
+  //     fNZ = int(fGeom->GetPMTEnclosedRadius()*2 / fInitialSpacing);
+  // } else {
+  //   fNX *= 1./0.75;
+  //   fNY *= 1./0.75;
+  //   fNZ *= 1./0.75;
+  // }
+
+  logmessage = "TimeGridVertex: Number of nodes (X, Y, Z): (" + std::to_string(fNX);
+  logmessage += ", " + std::to_string(fNY) + ", " + std::to_string(fNZ) + ")";
+  logmessage += "  Spacing: " + std::to_string(spacing);
+  Log(logmessage, v_message, verbosity);
+
 
   // Side lengths in each dimension
   double lX = fNX * spacing;
@@ -135,20 +173,27 @@ std::vector<Position> TimeGridVertex::GenerateVetices(const Position &center, do
   for (int idX = 0; idX < fNX; ++idX) {
     for (int idY = 0; idY < fNY; ++idY) {
       for (int idZ = 0; idZ < fNZ; ++idZ) {
-	
-	vertices.push_back(Position(x[idX], y[idY], z[idZ]));
+
+	// Check if this position is contained in the tank
+	Position temppos(x[idX], y[idY], z[idZ]);
+	double radialpos = sqrt( pow(temppos.X(), 2.) +
+				 pow(temppos.Z() - fGeom->GetTankCentre().Z(), 2.) );
+	double vertpos = abs(temppos.Y() - fGeom->GetTankCentre().Y());
+	bool pmtcontained = ( (radialpos < fGeom->GetPMTEnclosedRadius()) &&
+			      (vertpos < fGeom->GetPMTEnclosedHalfheight()) );
+
+	if (!pmtcontained) continue;
+
+	// if (!fGeom->GetTankContained(temppos)) continue;
+
+	vertices.push_back(temppos);
       }
     }
   }
 
-  // Cut out any vertices that are not inside the tank
-  for (auto it = vertices.begin(); it != vertices.end(); ) {
-    if (!fGeom->GetTankContained(*it))
-      it = vertices.erase(it);
-    else
-      ++it;
-  }
-    
+  logmessage = "TimeGridVertex: Number of vertices: " + std::to_string(vertices.size());
+  Log(logmessage, v_message, verbosity);
+
   return vertices;
 }
 
@@ -169,7 +214,7 @@ std::pair<int, double> TimeGridVertex::FindBestVertex(const std::vector<Hit> &hi
     
       Position dist = det->GetDetectorPosition() - vertex;
       double t = t0 - dist.Mag()/fSoL;
-
+      
       tsum += t;
       tsum_sq += t * t;
     }
@@ -180,6 +225,16 @@ std::pair<int, double> TimeGridVertex::FindBestVertex(const std::vector<Hit> &hi
       minRMS = tRMS;
       minVtxIdx = vtxIdx;
     }
+
+    if (fDebugTree) {
+      fVtxX = vertex.X();
+      fVtxY = vertex.Y();
+      fVtxZ = vertex.Z();
+      fRMSt = tRMS;
+      
+      fVtxTree->Fill();
+    }
+    
   }
 
   return std::make_pair(minVtxIdx, sqrt(minRMS));
@@ -198,13 +253,15 @@ std::pair<int, double> TimeGridVertex::FindBestVertex(const std::vector<MCHit> &
     double tsum_sq = 0;
     for (auto hit : hits) {
       Detector *det = fGeom->ChannelToDetector(hit.GetTubeId());
-      double t0 = hit.GetTime();
+      double ti = hit.GetTime();
     
       Position dist = det->GetDetectorPosition() - vertex;
-      double t = t0 - dist.Mag()/fSoL;
-
-      tsum += t;
-      tsum_sq += t * t;
+      
+      // Predicted emission time from the vertex with this hit
+      double t0 = ti - dist.Mag()/fSoL;
+	    
+      tsum += t0;
+      tsum_sq += t0 * t0;
     }
     double tmean = tsum / hits.size();
     double tRMS = tsum_sq / hits.size() - tmean * tmean;
@@ -213,7 +270,33 @@ std::pair<int, double> TimeGridVertex::FindBestVertex(const std::vector<MCHit> &
       minRMS = tRMS;
       minVtxIdx = vtxIdx;
     }
+
+    if (fDebugTree) {
+      fVtxX = vertex.X();
+      fVtxY = vertex.Y();
+      fVtxZ = vertex.Z();
+      fRMSt = tRMS;
+      
+      fVtxTree->Fill();
+    }
+
   }
+
+  // Debugging
+  std::cout << "Best RMS: " << minRMS
+  	    << " for vtx (x, y, z), " << vertices[minVtxIdx].X() << ", " << vertices[minVtxIdx].Y() << ", " << vertices[minVtxIdx].Z() << ""
+  	    << std::endl;
+  for (auto hit : hits) {
+    Detector *det = fGeom->ChannelToDetector(hit.GetTubeId());
+    double ti = hit.GetTime();
+
+    Position detpos = det->GetDetectorPosition();
+    Position dist = det->GetDetectorPosition() - vertices[minVtxIdx];
+    double t0 = ti - dist.Mag()/fSoL;
+    std::cout << " pos (x, y, z), " << detpos.X() << ", " << detpos.Y() << ", " << detpos.Z() << "" << std::endl;
+    std::cout << " times (ti, tof, t0), " << ti << ", " << dist.Mag()/fSoL << ", " << t0 << "" << std::endl;
+  }
+  
 
   return std::make_pair(minVtxIdx, sqrt(minRMS));
 }
@@ -227,7 +310,7 @@ void TimeGridVertex::RunLoop()
     double spacing = fInitialSpacing;
     
     double tRMS = 9999;
-    int counter = 0;
+    fLoopCount = 0;
     bool done = false;      
     while (!done) {
       std::vector<Position> vertices = GenerateVetices(bestVertex, spacing);
@@ -236,7 +319,7 @@ void TimeGridVertex::RunLoop()
       // Grab the new center position, decrease the spacing by half, and check if we should quit
       bestVertex = vertices[bestIdxRMS.first];
       tRMS = bestIdxRMS.second;
-      spacing = spacing / 2.;
+      spacing = spacing * 0.75;
 
       // When we hit the minimum spacing we want to perform one final go
       if (spacing < fMinSpacing) {
@@ -250,8 +333,8 @@ void TimeGridVertex::RunLoop()
 	done = true;
       }
     
-      ++counter;
-      if (counter > 100) break;
+      ++fLoopCount;
+      if (fLoopCount > 100) break;
     }
 
     logmessage = ("TimeGridVertex: Found best vertex at (X, Y, Z): (" +
@@ -273,33 +356,56 @@ void TimeGridVertex::RunLoopMC()
     // Build the initial test vertices around the tank center
     Position bestVertex = fGeom->GetTankCentre();
     double spacing = fInitialSpacing;
+
+    // Filter hits
+    auto filtered = FilterHitsMC(clusterpair.second);
+
+    std::cout << "Num hits unfiltered: " << clusterpair.second.size() << ", filtered: " << filtered.size() << std::endl;
     
+    // We need at least 4 hits
+    if (filtered.size() < 4) continue;
+   
     double tRMS = 9999;
-    int counter = 0;
+    fLoopCount = 0;
     bool done = false;      
     while (!done) {
       std::vector<Position> vertices = GenerateVetices(bestVertex, spacing);
-      std::pair<int, double> bestIdxRMS = FindBestVertex(clusterpair.second, vertices);
+      std::pair<int, double> bestIdxRMS = FindBestVertex(filtered, vertices);
     
       // Grab the new center position, decrease the spacing by half, and check if we should quit
       bestVertex = vertices[bestIdxRMS.first];
       tRMS = bestIdxRMS.second;
-      spacing = spacing / 2.;
+
+      if (spacing == fMinSpacing) break;
+      spacing = spacing * 0.75;
 
       // When we hit the minimum spacing we want to perform one final go
       if (spacing < fMinSpacing) {
 	spacing = fMinSpacing;
 
 	std::vector<Position> vertices = GenerateVetices(bestVertex, spacing);
-	std::pair<int, double> bestIdxRMS = FindBestVertex(clusterpair.second, vertices);
+	std::pair<int, double> bestIdxRMS = FindBestVertex(filtered, vertices);
       
 	bestVertex = vertices[bestIdxRMS.first];
 	tRMS = bestIdxRMS.second;
 	done = true;
       }
     
-      ++counter;
-      if (counter > 100) break;
+      ++fLoopCount;
+      if (fLoopCount > 100) break;
+    }
+
+    if (fDebugTree) {      
+      for (auto hit : filtered) {
+    	Detector *det = fGeom->ChannelToDetector(hit.GetTubeId());    	
+    	Position detpos = det->GetDetectorPosition();
+
+    	fHitX = detpos.X();
+    	fHitY = detpos.Y();
+    	fHitZ = detpos.Z();
+	fHitT0 = hit.GetTime();
+    	fHitTree->Fill();
+      }
     }
 
     logmessage = ("TimeGridVertex: Found best vertex at (X, Y, Z): (" +
@@ -311,4 +417,75 @@ void TimeGridVertex::RunLoopMC()
         
     fVertexMap->emplace(clusterpair.first, bestVertex);
   }
+}
+
+//------------------------------------------------------------------------------
+std::vector<MCHit> TimeGridVertex::FilterHitsMC(std::vector<MCHit> hits)
+{
+  std::vector<MCHit> filtered;
+  
+  // Sort the hits by time
+  std::sort(hits.begin(), hits.end(),
+	    [](const MCHit &a, const MCHit &b) {return a.GetTime() < b.GetTime();});
+
+  // Keep the first four and find the mean time
+  double mean = 0;
+  for (uint idx = 0; idx < 4; ++idx) {
+    mean += hits[idx].GetTime();
+    filtered.push_back(hits[idx]);
+  }
+  mean = mean/4.;
+
+  // Look through the rest of the hits,
+  // check that they are within 10 ns (for reflections),
+  // and check that they could come from the same point
+  for (uint idx = 4; idx < hits.size(); ++idx) {
+    if ((hits[idx].GetTime() - mean) > 10)
+      continue;
+
+    bool keep = true;
+    for (uint jdx = 0; jdx < 4; ++jdx) {
+      Detector *det_i = fGeom->ChannelToDetector(hits[idx].GetTubeId());
+      Position pos_i = det_i->GetDetectorPosition();
+
+      Detector *det_j = fGeom->ChannelToDetector(filtered[jdx].GetTubeId());
+      Position pos_j = det_j->GetDetectorPosition();
+
+      double deltaT = abs(filtered[jdx].GetTime() - hits[idx].GetTime());
+      double tof = (pos_i - pos_j).Mag() / fSoL;
+
+      if (deltaT > tof) {
+	keep = false;
+	break;
+      }
+    }
+
+    if (!keep) continue;
+    filtered.push_back(hits[idx]);
+  }
+
+  return filtered;
+}
+
+//------------------------------------------------------------------------------
+void TimeGridVertex::SetupDebugTree()
+{
+  fOutFile = new TFile("TimeGridVertex.debug.root", "RECREATE");
+
+  fVtxTree = new TTree("vtxtree", "vtxtree");
+  fVtxTree->Branch("EventNumber", &fEventNum );
+  fVtxTree->Branch("CountNumber", &fLoopCount);
+  fVtxTree->Branch("VtxX",        &fVtxX     );
+  fVtxTree->Branch("VtxY",        &fVtxY     );
+  fVtxTree->Branch("VtxZ",        &fVtxZ     );
+  fVtxTree->Branch("TimeRMS",     &fRMSt     );
+
+  fHitTree = new TTree("hittree", "hittree");
+  fHitTree->Branch("EventNumber", &fEventNum );
+  fHitTree->Branch("CountNumber", &fLoopCount);
+  fHitTree->Branch("HitX",        &fHitX     );
+  fHitTree->Branch("HitY",        &fHitY     );
+  fHitTree->Branch("HitZ",        &fHitZ     );
+  fHitTree->Branch("HitT0",       &fHitT0    );
+
 }

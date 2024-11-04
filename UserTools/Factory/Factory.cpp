@@ -156,7 +156,8 @@ if (tool=="GetLAPPDEvents") ret=new GetLAPPDEvents;
 if (tool=="LAPPDDataDecoder") ret=new LAPPDDataDecoder;
 if (tool=="PythonScript") ret=new PythonScript;
 if (tool=="MeanTimeCheck") ret=new MeanTimeCheck;
-if (tool=="ReweightEventsGenie") ret=new ReweightEventsGenie;
+if (tool=="LoadReweightGenieEvent") ret=new LoadReweightGenieEvent;
+if (tool=="ReweightFlux") ret=new ReweightFlux;
 if (tool=="FilterLAPPDEvents") ret=new FilterLAPPDEvents;
 if (tool=="VtxSeedFineGrid") ret=new VtxSeedFineGrid;
 if (tool=="FilterEvents") ret=new FilterEvents;
@@ -171,5 +172,6 @@ if (tool=="TimeGridVertex") ret=new TimeGridVertex;
 if (tool=="ClusterSelector") ret=new ClusterSelector;
 if (tool=="BackTracker") ret=new BackTracker;
 if (tool=="EvaluateVertex") ret=new EvaluateVertex;
+if (tool=="VertexLeastSquares") ret=new VertexLeastSquares;
 return ret;
 }
