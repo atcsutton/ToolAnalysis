@@ -36,6 +36,7 @@ bool PhaseIIADCHitFinder::Initialise(std::string config_filename, DataModel& dat
   m_variables.Get("PulseWindowEnd", pulse_window_end_shift);
   m_variables.Get("WindowIntegrationDB", adc_window_db); 
   m_variables.Get("EventBuilding",eventbuilding_mode);
+  m_variables.Get("MCWaveforms",mc_waveforms);
 
   if ((pulse_window_start_shift > 0) || (pulse_window_end_shift) < 0){
     Log("PhaseIIADCHitFinder Tool: WARNING... trigger threshold crossing will not be inside pulse window.  Threshold" 
@@ -63,6 +64,11 @@ bool PhaseIIADCHitFinder::Initialise(std::string config_filename, DataModel& dat
   if (eventbuilding_mode != false && eventbuilding_mode != true){
     Log("PhaseIIADCCalibrator: Event Building mode not recognized. Default to false",v_warning,verbosity);
     eventbuilding_mode = false;
+  }
+
+  if (mc_waveforms && (eventbuilding_mode || use_led_waveforms)) {
+    Log("PhaseIIADCCalibrator: Cannot use MCWaveforms in EventBuilding mode or while using LED waveforms. Aborting!", v_error, verbosity);
+    return false;
   }
 
   //Set in CStore for tools to know and log this later 
@@ -129,22 +135,50 @@ bool PhaseIIADCHitFinder::Execute() {
     } else {
       got_raw_data = annie_event->Get("RawADCData", raw_waveform_map);
       got_rawaux_data = annie_event->Get("RawADCAuxData", raw_aux_waveform_map);
+
+      if (mc_waveforms) {
+	raw_waveform_map.clear();
+	
+	std::map<unsigned long, std::vector<MCWaveform<unsigned short> > > mc_waveform_map;
+	bool got_raw_mc = annie_event->Get("RawADCDataMC", mc_waveform_map);
+	if (!got_raw_mc) {
+	  Log("Error: The PhaseIIADCHitFinder tool could not find the RawADCDataMC entry", v_error,
+	      verbosity);
+	  return false;
+	}
+
+	// Slice off the MC info to get a map of Waveforms
+	// Need to grab the parents for use in BackTracker later
+	for (auto itpair : mc_waveform_map) {
+	  for (auto mc_waveform : itpair.second) 
+	    raw_waveform_map[itpair.first].push_back(mc_waveform.GetBaseWaveform());
+	}
+	
+	if (raw_waveform_map.size() == mc_waveform_map.size())
+	  got_raw_data = true;
+	else {
+	  Log("Error: The PhaseIIADCHitFinder tool could not extract Waveforms from the MCWaveforms.", v_error,
+	      verbosity);
+	  return false;
+	}	  
+      }// end if mc_waveforms
     }
+    
     // Check for problems
     if ( !got_raw_data ) {
       Log("Error: The PhaseIIADCHitFinder tool could not find the RawADCData entry", v_error,
         verbosity);
       return false;
     }
-    if ( !got_rawaux_data ) {
+    if ( !got_rawaux_data && !(use_led_waveforms || mc_waveforms)) {
       Log("Error: The PhaseIIADCHitFinder tool could not find the RawADCAuxData entry", v_error,
-        verbosity);
+	  verbosity);
       return false;
     }
     else if ( raw_waveform_map.empty() ) {
-      Log("Error: The PhaseIIADCHitFinder tool found an empty RawADCData entry", v_error,
-        verbosity);
-      return false;
+      Log("Error: The PhaseIIADCHitFinder tool found an empty RawADCData entry. Skipping.", v_error,
+	  verbosity);
+      return true;
     }
     
     // Load the maps containing the ADC calibrated waveform data
@@ -165,15 +199,15 @@ bool PhaseIIADCHitFinder::Execute() {
         " entry", v_error, verbosity);
       return false;
     }
-    if ( !got_calibratedaux_data ) {
+    if ( !got_calibratedaux_data && !(use_led_waveforms || mc_waveforms)) {
       Log("Error: The PhaseIIADCHitFinder tool could not find the CalibratedADCAuxData"
         " entry", v_error, verbosity);
       return false;
     }
     else if ( calibrated_waveform_map.empty() ) {
-      Log("Error: The PhaseIIADCHitFinder tool found an empty CalibratedADCData entry",
+      Log("Error: The PhaseIIADCHitFinder tool found an empty CalibratedADCData entry. Skipping",
         v_error, verbosity);
-      return false;
+      return true;
     }
 
     //Find pulses in the raw detector data
@@ -729,6 +763,8 @@ std::vector<ADCPulse> PhaseIIADCHitFinder::find_pulses_bywindow(
 }
 
 
+// ******************************************************************
+// "PulseFindingApproach" default for EventBuilding
 std::vector<ADCPulse> PhaseIIADCHitFinder::find_pulses_bythreshold(
   const Waveform<unsigned short>& raw_minibuffer_data,
   const CalibratedADCWaveform<double>& calibrated_minibuffer_data,
@@ -824,8 +860,8 @@ std::vector<ADCPulse> PhaseIIADCHitFinder::find_pulses_bythreshold(
       if(it != ChannelKeyToTimingOffsetMap.end()){ //Timing offset is available
         timing_offset = ChannelKeyToTimingOffsetMap.at(channel_key);
       } else {
-        if(verbosity>2){
-          std::cout << "Didn't find Timing offset for channel " << channel_key << std::endl;
+        if(verbosity>v_error){
+          std::cout << "PhaseIIADCHitFinder: Didn't find Timing offset for channel... setting this channel's offset to 0ns" << channel_key << std::endl;
         }
       }
 
@@ -837,7 +873,10 @@ std::vector<ADCPulse> PhaseIIADCHitFinder::find_pulses_bythreshold(
         calibrated_minibuffer_data.GetSigmaBaseline(),
         raw_area, max_ADC, calibrated_amplitude, charge);
     }
-  
+
+	  
+  // ******************************************************************
+  // "PulseWindowType" default for EventBuilding
   // Peak windows are defined only by crossing and un-crossing of ADC threshold
   } else if(pulse_window_type == "dynamic"){
     size_t pulse_start_sample = BOGUS_INT;
@@ -898,8 +937,8 @@ std::vector<ADCPulse> PhaseIIADCHitFinder::find_pulses_bythreshold(
       if(it != ChannelKeyToTimingOffsetMap.end()){ //Timing offset is available
         timing_offset = ChannelKeyToTimingOffsetMap.at(channel_key);
       } else {
-        if(verbosity>2){
-          std::cout << "Didn't find Timing offset for channel " << channel_key << std::endl;
+        if(verbosity>v_error){
+          std::cout << "PhaseIIADCHitFinder: Didn't find Timing offset for channel... setting this channel's offset to 0ns" << channel_key << std::endl;
         }
       }
 
@@ -932,20 +971,23 @@ std::vector<ADCPulse> PhaseIIADCHitFinder::find_pulses_bythreshold(
         }
       }
 
-      if(verbosity>4) std::cout << "Hit time [ns] " << hit_time * NS_PER_ADC_SAMPLE << std::endl;
+      if(verbosity>v_debug) {
+	      
+	      std::cout << "Hit time [ns] " << hit_time * NS_PER_ADC_SAMPLE << std::endl;
 
-      if (hit_time < 0.0) {
-        // If for some reason the interpolation finds a negative time value (if the pulse is extremely early in the buffer),
-        // default to the peak time
-        std::cout << "Hit time is negative! Defaulting to peak time" << std::endl;
-        hit_time = peak_sample;
+	      if (hit_time < 0.0) {
+	        // If for some reason the interpolation finds a negative time value (if the pulse is extremely early in the buffer),
+	        // default to the peak time (maximum ADC value of the pulse)
+	        std::cout << "Hit time is negative! Defaulting to peak time" << std::endl;
+	        hit_time = peak_sample;
+	      }
       }
 
 
         // Store the freshly made pulse in the vector of found pulses
         pulses.emplace_back(channel_key,
           ( pulse_start_sample * NS_PER_ADC_SAMPLE )-timing_offset,
-          (peak_sample * NS_PER_ADC_SAMPLE)-timing_offset,
+          (hit_time * NS_PER_ADC_SAMPLE)-timing_offset,                 // interpolated hit time
           calibrated_minibuffer_data.GetBaseline(),
           calibrated_minibuffer_data.GetSigmaBaseline(),
           raw_area, max_ADC, calibrated_amplitude, charge);

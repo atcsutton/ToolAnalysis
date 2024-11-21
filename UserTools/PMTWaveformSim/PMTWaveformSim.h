@@ -1,0 +1,75 @@
+#ifndef PMTWaveformSim_H
+#define PMTWaveformSim_H
+
+#include <string>
+#include <iostream>
+
+// ANNIE includes
+#include "Tool.h"
+#include "CalibratedADCWaveform.h"
+#include "Waveform.h"
+
+// ROOT includes
+#include "TFile.h"
+#include "TRandom3.h"
+
+
+/**
+ * \class PMTWaveformSim
+ *
+ * This is a blank template for a Tool used by the script to generate a new custom tool. Please fill out the description and author information.
+*
+* $Author: D. Ajana $
+* $Date: 2024/11/05 10:44:00 $
+* Contact: dja23@fsu.edu
+*/
+class PMTWaveformSim: public Tool {
+
+
+ public:
+
+  PMTWaveformSim(); ///< Simple constructor
+  bool Initialise(std::string configfile,DataModel &data); ///< Initialise Function for setting up Tool resources. @param configfile The path and name of the dynamic configuration file to read in. @param data A reference to the transient data class used to pass information between Tools.
+  bool Execute(); ///< Execute function used to perform Tool purpose.
+  bool Finalise(); ///< Finalise function used to clean up resources.
+  bool LoadFromStores();
+
+  bool LoadPMTParameters();
+  uint16_t CustomLogNormalPulse(uint16_t hit_t0, uint16_t t0_clocktick, double hit_charge, int PMTID);
+  void ConvertMapToWaveforms(const std::map<uint16_t, uint16_t> &sample_map,
+			     const std::map<uint16_t, std::set<int>> & parent_map,
+			     std::vector<MCWaveform<uint16_t>> &rawWaveforms,
+			     std::vector<CalibratedADCWaveform<double>> &calWaveforms,
+			     double noiseSigma, int baseline);
+
+  void FillDebugGraphs(const std::map<unsigned long, std::vector<MCWaveform<uint16_t>> > &RawADCDataMC);
+    
+ private:
+
+  // To load from the ANNIEEvent
+  std::map<unsigned long, std::vector<MCHit>> *fMCHits = nullptr;
+  std::map<int, std::tuple<double, double, double>> pmtParameters;
+  Geometry *fGeo = nullptr;
+
+  // Config variables
+  uint16_t fPrewindow;
+  uint16_t fReadoutWindow;
+  uint16_t fT0Offset;
+  std::string fPMTParameterFile;
+  
+  TRandom3 *fRandom;
+    
+  bool fDebug;
+  TFile *fOutFile;
+  int fEvtNum = 0;
+  
+  int verbosity;
+  int v_error=0;
+  int v_warning=1;
+  int v_message=2;
+  int v_debug=3;
+  std::string logmessage;
+};
+
+
+#endif

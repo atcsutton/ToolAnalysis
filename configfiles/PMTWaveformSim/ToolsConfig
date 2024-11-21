@@ -1,0 +1,4 @@
+LoadGeometry LoadGeometry configfiles/PMTWaveformSim/LoadGeometryConfig
+LoadWCSim LoadWCSim configfiles/PMTWaveformSim/LoadWCSimConfig
+PMTWaveformSim PMTWaveformSim configfiles/PMTWaveformSim/PMTWaveformSimConfig
+PhaseIIADCHitFinder PhaseIIADCHitFinder configfiles/PMTWaveformSim/PhaseIIADCHitFinderConfig
