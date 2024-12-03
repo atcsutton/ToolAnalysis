@@ -90,8 +90,6 @@ bool PMTWaveformSim::Execute()
   for (auto mcHitsIt : *fMCHits) { // Loop over the hit PMTs
     int PMTID = mcHitsIt.first;
 
-    std::cout << "PMT: " << PMTID << std::endl;
-    
     std::vector<MCHit> mcHits = mcHitsIt.second;
 
     // Generate waveform samples from the MC hits
@@ -108,8 +106,6 @@ bool PMTWaveformSim::Execute()
       // MCHit time is in ns, but we're going to sample in clock ticks
       uint16_t hit_t0 = uint16_t(mcHit.GetTime() / NS_PER_ADC_SAMPLE);
       double hit_charge = mcHit.GetCharge();
-
-      std::cout << mcHit.GetTime() << ", " << hit_charge << std::endl;
 
       // Set the readout window but don't allow negative times
       uint16_t start_clocktick = (hit_t0 > fPrewindow)? hit_t0 - fPrewindow : 0;
@@ -152,7 +148,6 @@ bool PMTWaveformSim::Execute()
   }// end loop over PMTs
 
   // Publish the waveforms to the ANNIEEvent store
-  std::cout << "PMTWaveformSim: Saving RawADCDataMC with size: " << RawADCDataMC.size() << std::endl;
   m_data->Stores.at("ANNIEEvent")->Set("RawADCDataMC",      RawADCDataMC);
   m_data->Stores.at("ANNIEEvent")->Set("CalibratedADCData", CalADCDataMC);
   
