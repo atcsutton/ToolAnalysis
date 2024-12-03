@@ -45,8 +45,8 @@ class PMTWaveformSim: public Tool {
   bool LoadPMTParameters();
   bool SampleFitParameters(int pmtid);
   uint16_t CustomLogNormalPulse(uint16_t hit_t0, uint16_t t0_clocktick, double hit_charge);
-  void ConvertMapToWaveforms(const std::map<uint16_t, uint16_t> &sample_map,
-			     const std::map<uint16_t, std::set<int>> & parent_map,
+  void ConvertMapToWaveforms(std::map<uint16_t, uint16_t> &sample_map,
+			     std::map<uint16_t, std::set<int>> & parent_map,
 			     std::vector<MCWaveform<uint16_t>> &rawWaveforms,
 			     std::vector<CalibratedADCWaveform<double>> &calWaveforms,
 			     double noiseSigma, int baseline);

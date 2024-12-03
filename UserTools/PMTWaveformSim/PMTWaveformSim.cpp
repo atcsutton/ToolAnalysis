@@ -183,8 +183,6 @@ bool PMTWaveformSim::LoadPMTParameters()
   double p0, p1, p2, u00, u10, u11, u20, u21, u22;
   std::string comma;
   std::string line;
-  std::getline(infile, line);  // Skipping the header line                                                                                                                       
-
   while (std::getline(infile, line)) {
     if (infile.fail()) {
       logmessage = "PMTWaveformSim: Error using CSV file: ";
@@ -194,8 +192,11 @@ bool PMTWaveformSim::LoadPMTParameters()
       return false;
     }
 
+    // Skip the header line
+    if (line.find("PMT") != std::string::npos) continue;
+    
     // Skip any commented lines
-    if(line.rfind("#",0)!=std::string::npos) continue;
+    if(line.rfind("#",0) != std::string::npos) continue;
 
     // Turn the line into a stringstream to extract the values
     std::stringstream ss(line);
@@ -267,8 +268,8 @@ uint16_t PMTWaveformSim::CustomLogNormalPulse(uint16_t hit_t0, uint16_t clocktic
 }
 
 //------------------------------------------------------------------------------
-void PMTWaveformSim::ConvertMapToWaveforms(const std::map<uint16_t, uint16_t> &sample_map,
-					   const std::map<uint16_t, std::set<int>> & parent_map,
+void PMTWaveformSim::ConvertMapToWaveforms(std::map<uint16_t, uint16_t> &sample_map,
+					   std::map<uint16_t, std::set<int>> & parent_map,
 					   std::vector<MCWaveform<uint16_t>> &rawWaveforms,
 					   std::vector<CalibratedADCWaveform<double>> &calWaveforms,
 					   double noiseSigma, int baseline)
@@ -283,18 +284,25 @@ void PMTWaveformSim::ConvertMapToWaveforms(const std::map<uint16_t, uint16_t> &s
 
     int sample = std::round(noise + baseline);
     
-    // look for this tick in the sample map and add it 
-    if (sample_map.find(tick) != sample_map.end())
+    // look for this tick in the sample map and add it
+    // then remove it from the map to make the next find faster
+    if (sample_map.find(tick) != sample_map.end()) {
       sample += sample_map.at(tick);
-
+      sample_map.erase(tick);
+    }
 
     rawSamples.push_back((sample > 4095) ? 4095 : sample);
     calSamples.push_back((rawSamples.back() - baseline) * ADC_TO_VOLT);
 
+    // Look for parent info associated with each tick
+    // need to transfer a set into a vector
+    // then erase the tick from the map 
     std::vector<int> innerParents;
-    if (parent_map.find(tick) != parent_map.end())
+    if (parent_map.find(tick) != parent_map.end()) {
       std::copy(parent_map.at(tick).begin(), parent_map.at(tick).begin(),
 		std::back_inserter(innerParents));
+      parent_map.erase(tick);
+    }
     else
       innerParents.push_back(-5);
     
@@ -349,14 +357,14 @@ void PMTWaveformSim::FillDebugGraphs(const std::map<unsigned long, std::vector<M
 
       // Make the graph
       std::vector<uint16_t> samples = waveform.Samples();
-      TGraph* grTemp = new TGraph();
+      TGraph grTemp = TGraph();
       double sampleX = waveform.GetStartTime() / NS_PER_ADC_SAMPLE;
       for(auto sample : samples) {
-	grTemp->AddPoint(sampleX, sample);
+	grTemp.AddPoint(sampleX, sample);
 	++sampleX;
       }
       
-      grTemp->Write(grName.c_str());	
+      grTemp.Write(grName.c_str());	
     }// end loop over waveforms
   }// end loop over PMTs
 }
