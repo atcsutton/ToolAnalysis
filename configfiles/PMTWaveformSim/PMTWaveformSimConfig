@@ -2,5 +2,5 @@ verbosity 0
 PMTParameterFile configfiles/PMTWaveformSim/PMTfittingparametersWhitespace.csv
 Prewindow 10
 ReadoutWindow 35
-T0Offset 7
-MakeDebugFile 0
+T0Offset 0
+MakeDebugFile 1

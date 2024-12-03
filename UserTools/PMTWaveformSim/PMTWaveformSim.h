@@ -13,6 +13,14 @@
 #include "TFile.h"
 #include "TRandom3.h"
 
+struct PMTFitParams
+{
+  double  p0; double  p1; double  p2;
+  double u00;
+  double u10; double u11; 
+  double u20; double u21; double u22;
+};
+
 
 /**
  * \class PMTWaveformSim
@@ -35,7 +43,8 @@ class PMTWaveformSim: public Tool {
   bool LoadFromStores();
 
   bool LoadPMTParameters();
-  uint16_t CustomLogNormalPulse(uint16_t hit_t0, uint16_t t0_clocktick, double hit_charge, int PMTID);
+  bool SampleFitParameters(int pmtid);
+  uint16_t CustomLogNormalPulse(uint16_t hit_t0, uint16_t t0_clocktick, double hit_charge);
   void ConvertMapToWaveforms(const std::map<uint16_t, uint16_t> &sample_map,
 			     const std::map<uint16_t, std::set<int>> & parent_map,
 			     std::vector<MCWaveform<uint16_t>> &rawWaveforms,
@@ -48,7 +57,7 @@ class PMTWaveformSim: public Tool {
 
   // To load from the ANNIEEvent
   std::map<unsigned long, std::vector<MCHit>> *fMCHits = nullptr;
-  std::map<int, std::tuple<double, double, double>> pmtParameters;
+
   Geometry *fGeo = nullptr;
 
   // Config variables
@@ -58,7 +67,10 @@ class PMTWaveformSim: public Tool {
   std::string fPMTParameterFile;
   
   TRandom3 *fRandom;
-    
+
+  std::map<int, PMTFitParams> fPMTParamMap;
+  double fP0, fP1, fP2;
+  
   bool fDebug;
   TFile *fOutFile;
   int fEvtNum = 0;

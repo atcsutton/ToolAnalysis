@@ -115,9 +115,12 @@ bool PMTWaveformSim::Execute()
       uint16_t start_clocktick = (hit_t0 > fPrewindow)? hit_t0 - fPrewindow : 0;
       uint16_t end_clocktick = start_clocktick + fReadoutWindow;
 
+      // Randomly Sample the PMT parameters for each MCHit
+      SampleFitParameters(PMTID);
+      
       // loop over clock ticks      
       for (uint16_t clocktick = start_clocktick; clocktick <= end_clocktick; clocktick += 1) { 
-	uint16_t sample = CustomLogNormalPulse(hit_t0, clocktick, hit_charge, PMTID);
+	uint16_t sample = CustomLogNormalPulse(hit_t0, clocktick, hit_charge);
 	
 	// check if this hit time has been recorded
 	// either set it or add to it
@@ -149,6 +152,7 @@ bool PMTWaveformSim::Execute()
   }// end loop over PMTs
 
   // Publish the waveforms to the ANNIEEvent store
+  std::cout << "PMTWaveformSim: Saving RawADCDataMC with size: " << RawADCDataMC.size() << std::endl;
   m_data->Stores.at("ANNIEEvent")->Set("RawADCDataMC",      RawADCDataMC);
   m_data->Stores.at("ANNIEEvent")->Set("CalibratedADCData", CalADCDataMC);
   
@@ -181,26 +185,31 @@ bool PMTWaveformSim::LoadPMTParameters()
   }
 
   int pmtid;
-  double p0, p1, p2;
+  double p0, p1, p2, u00, u10, u11, u20, u21, u22;
+  std::string comma;
   std::string line;
   std::getline(infile, line);  // Skipping the header line                                                                                                                       
 
   while (std::getline(infile, line)) {
     if (infile.fail()) {
-      logmessage = "PMTWaveformSim: Error reading from CSV file: ";
+      logmessage = "PMTWaveformSim: Error using CSV file: ";
       logmessage += fPMTParameterFile + "!";
       Log(logmessage, v_error, verbosity);
+
       return false;
     }
 
     // Skip any commented lines
-    if(line.find("#")!=std::string::npos) continue;
+    if(line.rfind("#",0)!=std::string::npos) continue;
 
     // Turn the line into a stringstream to extract the values
     std::stringstream ss(line);
-    ss >> pmtid >> p0 >> p1 >> p2;
-    
-    pmtParameters[pmtid] = std::make_tuple(p0, p1, p2);
+    ss >> pmtid >> comma >> p0 >> comma >> p1 >> comma >> p2 >> comma
+       >> u00 >> comma
+       >> u10 >> comma >> u11 >> comma 
+       >> u20 >> comma >> u21 >> comma >> u22;
+
+    fPMTParamMap[pmtid] = {p0, p1, p2, u00, u10, u11, u20, u21, u22};
 
     logmessage = "PMTWaveformSim: Loaded parameters for PMTID " + std::to_string(pmtid) + ": ";
     logmessage += "p0 = " + std::to_string(p0);
@@ -215,28 +224,48 @@ bool PMTWaveformSim::LoadPMTParameters()
 }
 
 //------------------------------------------------------------------------------
-uint16_t PMTWaveformSim::CustomLogNormalPulse(uint16_t hit_t0, uint16_t clocktick, double hit_charge, int PMTID)
+bool PMTWaveformSim::SampleFitParameters(int pmtid)
 {
-  double p0, p1, p2;
-  if (pmtParameters.find(PMTID) != pmtParameters.end()) {
-    std::tie(p0, p1, p2) = pmtParameters[PMTID];
+  PMTFitParams pmtParams;
+  if (fPMTParamMap.find(pmtid) != fPMTParamMap.end()) {
+    pmtParams = fPMTParamMap[pmtid];
   } else {
-    logmessage = "PMTWaveformSim: PMTParameters not found for " + std::to_string(PMTID);
+    logmessage = "PMTWaveformSim: PMTParameters not found for " + std::to_string(pmtid);
     logmessage += ", using defaults: p0 = 17.49, p1 = 3.107, p2 = 0.1492";
     Log(logmessage, v_warning, verbosity);
 
-    p0 = 17.49;
-    p1 = 3.107;
-    p2 = 0.1492;
-  }
+    // TODO make this a random sample as well
+    fP0 = 17.49;
+    fP1 = 3.107;
+    fP2 = 0.1492;
 
-  // The fit was performed in time units of ns, but we want to grab samples in clock ticks
-  double x = (double(clocktick) + fT0Offset - hit_t0) * NS_PER_ADC_SAMPLE;
-  // std::cout << "  " << clocktick << ", " << x << std::endl;
+    return true;
+  }
   
-  double numerator = pow(log(x) - p1, 2);
-  double denom = (2 * pow(p2, 2));
-  double amplitude = p0 * exp(-numerator / denom) * hit_charge;
+  // First sample a Gaussian with mean 0 and deviation 1
+  double r0 = fRandom->Gaus();
+  double r1 = fRandom->Gaus();
+  double r2 = fRandom->Gaus();
+
+  // Convert to parameters that follow the fitted covariance matrix
+  fP0 = r0*pmtParams.u00 + pmtParams.p0;
+  fP1 = r0*pmtParams.u10 + r1*pmtParams.u11 + pmtParams.p1;
+  fP2 = r0*pmtParams.u20 + r1*pmtParams.u21 + r2*pmtParams.u22 + pmtParams.p2;
+
+  return true;
+}
+
+//------------------------------------------------------------------------------
+uint16_t PMTWaveformSim::CustomLogNormalPulse(uint16_t hit_t0, uint16_t clocktick, double hit_charge)
+{
+  //p0*exp( -0.5 * (log(x/p1)/p2)^2)
+  
+  // The fit was performed in time units of ns, but we pass samples in clock ticks
+  double x = (double(clocktick) + fT0Offset - hit_t0) * NS_PER_ADC_SAMPLE;
+  
+  double numerator = pow(log(x/fP1), 2);
+  double denom = (pow(fP2, 2));
+  double amplitude = fP0 * exp(-0.5 * numerator/denom) * hit_charge;
 
   // Clip at 4095 and digitize to an integer
   return uint16_t((amplitude > 4095) ? 4095 : amplitude);
