@@ -780,6 +780,7 @@ PhaseIIADCCalibrator::make_calibrated_waveforms_ze3ra_multi(
       bl_estimates_mean += baselines[idx];
       bl_estimates_sigma += pow(sigma_baselines[idx],2);
     }
+    bl_estimates_mean = bl_estimates_mean / baselines.size();
     bl_estimates_sigma = sqrt(bl_estimates_sigma / double(baselines.size()));
     
     //    ComputeMeanAndVariance(baselines, bl_estimates_mean, bl_estimates_var, std::numeric_limits<size_t>::max(), 0, 7);
