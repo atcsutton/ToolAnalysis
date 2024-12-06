@@ -78,7 +78,9 @@ bool PhaseIIADCHitFinder::Initialise(std::string config_filename, DataModel& dat
   m_data->CStore.Get("AuxChannelNumToTypeMap",AuxChannelNumToTypeMap);
 
   // Get the timing offsets
-  m_data->CStore.Get("ChannelNumToTankPMTTimingOffsetMap",ChannelKeyToTimingOffsetMap); 
+  // don't need them for MC
+  if (!mc_waveforms) 
+    m_data->CStore.Get("ChannelNumToTankPMTTimingOffsetMap",ChannelKeyToTimingOffsetMap); 
 
   //Recreate maps that were deleted with ANNIEEvent->Delete() ANNIEEventBuilder tool
   hit_map = new std::map<unsigned long,std::vector<Hit>>;
@@ -137,30 +139,21 @@ bool PhaseIIADCHitFinder::Execute() {
       got_rawaux_data = annie_event->Get("RawADCAuxData", raw_aux_waveform_map);
 
       if (mc_waveforms) {
-	raw_waveform_map.clear();
-	
-	std::map<unsigned long, std::vector<MCWaveform<unsigned short> > > mc_waveform_map;
-	bool got_raw_mc = annie_event->Get("RawADCDataMC", mc_waveform_map);
-	if (!got_raw_mc) {
-	  Log("Error: The PhaseIIADCHitFinder tool could not find the RawADCDataMC entry", v_error,
-	      verbosity);
-	  return false;
-	}
+	got_raw_data = annie_event->Get("RawADCDataMC", raw_waveform_map);
 
-	// Slice off the MC info to get a map of Waveforms
-	// Need to grab the parents for use in BackTracker later
-	for (auto itpair : mc_waveform_map) {
-	  for (auto mc_waveform : itpair.second) 
-	    raw_waveform_map[itpair.first].push_back(mc_waveform.GetBaseWaveform());
+	// Some executes are skipped if there are no MCHits or waveforms produced
+	// Put the cleared maps into the ANNIEEvent to ensure that a downstream
+	// tool doesn't grab a map from a previous event
+	bool skip = false;
+	bool got_skip_status = annie_event->Get("SkipExecute", skip);
+	if (got_skip_status && skip) {
+	  Log("PhaseIIADCHitFinder: An upstream tool told me to skip this event.",v_warning,verbosity);
+
+	  m_data->Stores.at("ANNIEEvent")->Set("RecoADCHits", pulse_map);
+	  m_data->Stores.at("ANNIEEvent")->Set("RecoADCAuxHits", aux_pulse_map);
+
+	  return true;
 	}
-	
-	if (raw_waveform_map.size() == mc_waveform_map.size())
-	  got_raw_data = true;
-	else {
-	  Log("Error: The PhaseIIADCHitFinder tool could not extract Waveforms from the MCWaveforms.", v_error,
-	      verbosity);
-	  return false;
-	}	  
       }// end if mc_waveforms
     }
     
@@ -176,9 +169,9 @@ bool PhaseIIADCHitFinder::Execute() {
       return false;
     }
     else if ( raw_waveform_map.empty() ) {
-      Log("Error: The PhaseIIADCHitFinder tool found an empty RawADCData entry. Skipping.", v_error,
+      Log("Error: The PhaseIIADCHitFinder tool found an empty RawADCData entry.", v_error,
 	  verbosity);
-      return true;
+      return false;
     }
     
     // Load the maps containing the ADC calibrated waveform data
@@ -205,9 +198,9 @@ bool PhaseIIADCHitFinder::Execute() {
       return false;
     }
     else if ( calibrated_waveform_map.empty() ) {
-      Log("Error: The PhaseIIADCHitFinder tool found an empty CalibratedADCData entry. Skipping",
+      Log("Error: The PhaseIIADCHitFinder tool found an empty CalibratedADCData entry.",
         v_error, verbosity);
-      return true;
+      return false;
     }
 
     //Find pulses in the raw detector data
@@ -746,7 +739,7 @@ std::vector<ADCPulse> PhaseIIADCHitFinder::find_pulses_bywindow(
       if(it != ChannelKeyToTimingOffsetMap.end()){ //Timing offset is available
         timing_offset = ChannelKeyToTimingOffsetMap.at(channel_key);
       } else {
-        if(verbosity>2){
+        if(verbosity>2 && !mc_waveforms){
           std::cout << "Didn't find Timing offset for channel " << channel_key << std::endl;
         }
       }
@@ -754,10 +747,11 @@ std::vector<ADCPulse> PhaseIIADCHitFinder::find_pulses_bywindow(
     // Store the freshly made pulse in the vector of found pulses
     pulses.emplace_back(channel_key,
       ( wmin * NS_PER_SAMPLE )-timing_offset,
-      (peak_sample * NS_PER_SAMPLE)-timing_offset,
+      ( peak_sample * NS_PER_SAMPLE )-timing_offset,
       calibrated_minibuffer_data.GetBaseline(),
       calibrated_minibuffer_data.GetSigmaBaseline(),
-      raw_area, max_ADC, calibrated_amplitude, charge);
+      raw_area, max_ADC, calibrated_amplitude, charge,
+      ( wmax * NS_PER_SAMPLE )-timing_offset);
   }
   return pulses;
 }
@@ -860,7 +854,7 @@ std::vector<ADCPulse> PhaseIIADCHitFinder::find_pulses_bythreshold(
       if(it != ChannelKeyToTimingOffsetMap.end()){ //Timing offset is available
         timing_offset = ChannelKeyToTimingOffsetMap.at(channel_key);
       } else {
-        if(verbosity>v_error){
+        if(verbosity>v_error && !mc_waveforms){
           std::cout << "PhaseIIADCHitFinder: Didn't find Timing offset for channel... setting this channel's offset to 0ns" << channel_key << std::endl;
         }
       }
@@ -868,10 +862,11 @@ std::vector<ADCPulse> PhaseIIADCHitFinder::find_pulses_bythreshold(
       // Store the freshly made pulse in the vector of found pulses
       pulses.emplace_back(channel_key,
         ( pulse_start_sample * NS_PER_SAMPLE )-timing_offset,
-        (peak_sample * NS_PER_SAMPLE)-timing_offset,
+        ( peak_sample * NS_PER_SAMPLE )-timing_offset,
         calibrated_minibuffer_data.GetBaseline(),
         calibrated_minibuffer_data.GetSigmaBaseline(),
-        raw_area, max_ADC, calibrated_amplitude, charge);
+        raw_area, max_ADC, calibrated_amplitude, charge,
+	( pulse_end_sample * NS_PER_SAMPLE )-timing_offset);
     }
 
 	  
@@ -937,7 +932,7 @@ std::vector<ADCPulse> PhaseIIADCHitFinder::find_pulses_bythreshold(
       if(it != ChannelKeyToTimingOffsetMap.end()){ //Timing offset is available
         timing_offset = ChannelKeyToTimingOffsetMap.at(channel_key);
       } else {
-        if(verbosity>v_error){
+        if(verbosity>v_error && !mc_waveforms){
           std::cout << "PhaseIIADCHitFinder: Didn't find Timing offset for channel... setting this channel's offset to 0ns" << channel_key << std::endl;
         }
       }
@@ -987,10 +982,11 @@ std::vector<ADCPulse> PhaseIIADCHitFinder::find_pulses_bythreshold(
         // Store the freshly made pulse in the vector of found pulses
         pulses.emplace_back(channel_key,
           ( pulse_start_sample * NS_PER_ADC_SAMPLE )-timing_offset,
-          (hit_time * NS_PER_ADC_SAMPLE)-timing_offset,                 // interpolated hit time
+          ( hit_time * NS_PER_ADC_SAMPLE )-timing_offset,                 // interpolated hit time
           calibrated_minibuffer_data.GetBaseline(),
           calibrated_minibuffer_data.GetSigmaBaseline(),
-          raw_area, max_ADC, calibrated_amplitude, charge);
+          raw_area, max_ADC, calibrated_amplitude, charge,
+	  ( pulse_end_sample * NS_PER_ADC_SAMPLE )-timing_offset);
       }
     }
   } else {

@@ -7,6 +7,7 @@
 #include "Tool.h"
 #include "Hit.h"
 #include "Particle.h"
+#include "ADCPulse.h"
 
 
 /**
@@ -28,22 +29,32 @@ class BackTracker: public Tool {
   bool Execute(); ///< Execute function used to perform Tool purpose.
   bool Finalise(); ///< Finalise function used to clean up resources.
 
-  bool LoadFromStores(); ///< Does all the loading so I can move it away from the Execute function
+  int LoadFromStores(); ///< Does all the loading so I can move it away from the Execute function
   void SumParticleTankCharge();
   void MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, int &prtPdg, double &eff, double &pur, double &totalCharge); ///< The meat and potatoes
+
+  bool MapPulsesToParentIdxs();
   
  private:
 
   // Things we need to pull out of the store
   std::map<unsigned long, std::vector<MCHit>> *fMCHitsMap = nullptr;          ///< All of the MCHits keyed by channel number
-  std::map<double, std::vector<MCHit>>        *fClusterMapMC = nullptr;       ///< Clusters that we will be linking MCParticles to
+  std::map<unsigned long, std::vector<Hit>>   *fRecoHitsMap = nullptr;        ///< All of the reco Hits keyed by channel number
+  std::map<double, std::vector<MCHit>>        *fClusterMapMC = nullptr;       ///< MCClusters that we will be linking MCParticles to
+  std::map<double, std::vector<Hit>>          *fClusterMap   = nullptr;       ///< Clusters that we will be linking MCParticles to
   std::vector<MCParticle>                     *fMCParticles = nullptr;        ///< The true particles from the event
   std::map<int, int>                          *fMCParticleIndexMap = nullptr; ///< Map between the particle Id and it's position in MCParticles vector
 
   // We'll calculate this map from MCHit parent particle to the total charge deposited throughout the tank
   // technically a MCHit could have multiple parents, but they don't appear to in practice
   // the key is particle Id and value is total tank charge
-  std::map<int, double> fParticleToTankTotalCharge; 
+  std::map<int, double> fParticleToTankTotalCharge;
+
+  // Used in the case of MC Waveforms
+  // Outer map: PMT channel ID to inner map
+  // Inner map: pulse time to vector of MCHit indexes that contribute
+  // The peak times of ADCPulses should match the time associated with reco Hits
+  std::map<unsigned long, std::map<double, std::vector<int>>> fMapChannelToPulseTimeToMCHitIdx;
     
   // We'll save out maps between the local cluster time and
   //   the ID and PDG of the particle that contributed the most energy
@@ -57,6 +68,8 @@ class BackTracker: public Tool {
   std::map<double, double> *fClusterPurity            = nullptr;
   std::map<double, double> *fClusterTotalCharge       = nullptr;
 
+  bool fMCWaveforms;
+  
   /// \brief verbosity levels: if 'verbosity' < this level, the message type will be logged.
   int verbosity;
   int v_error=0;
