@@ -8,6 +8,8 @@
 #include "Hit.h"
 #include "Particle.h"
 #include "Position.h"
+#include "ADCPulse.h"
+#include "CalibratedADCWaveform.h"
 
 #include "TTree.h"
 #include "TFile.h"
@@ -41,8 +43,9 @@ class SelectionEffnPurity: public Tool {
   void SetupHist();
   void InitHist(double max);
   void WriteHist();
-  bool LoadTankClusterClassifiers(double cluster_time);
- private:
+  //  bool LoadTankClusterClassifiers(double cluster_time);
+  
+private:
   
     // Configuration variables
   std::string fClusterMapName; // The name of the cluster map in the ANNIEEvent
@@ -61,6 +64,9 @@ class SelectionEffnPurity: public Tool {
   std::map<double, double> *fClusterPurity            = nullptr;
   std::map<double, double> *fClusterTotalCharge       = nullptr;
   std::map<double, double> *fClusterNeutronCharge     = nullptr;
+
+  //Experiment
+
 
   // Output ROOT file things
   TFile *fOutFile;
@@ -312,9 +318,8 @@ class SelectionEffnPurity: public Tool {
   int nDelayedGd155 = 0;
   
   double fClusterChargeBalance;
-  std::map<double, double> cluster_CB;
-
-
+  std::map<double, double> ClusterChargeBalances;
+  //  std::map<double, double> cluster_CB;
 
 
 };

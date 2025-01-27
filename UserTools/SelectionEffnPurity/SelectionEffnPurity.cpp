@@ -50,6 +50,14 @@ bool SelectionEffnPurity::Execute(){
   if (!LoadFromStores())
     return false;
 
+  bool skip = false;
+  bool goodSkipStatus = m_data->Stores.at("ANNIEEvent")->Get("SkipExecute", skip);
+  if (goodSkipStatus && skip) {
+    logmessage = "BackTracker: An upstream tool told me to skip this event.";
+    Log(logmessage, v_warning, verbosity);
+    return true;
+  }
+  
   Float_t NeutrinoEnergy=-2;
   bool isok;
   MCParticle neutrino;
@@ -58,11 +66,9 @@ bool SelectionEffnPurity::Execute(){
   bool IsInTank,IsInTankMC ;
   //  double mchits = 0;
   for (auto& MCkey : *fMCParticles){
-
+    
     int ParticlePDG = MCkey.GetPdgCode();
-    //    std::cout <<"MCParticle PDG code:" << ParticlePDG << std::endl;
     int ParentPdg = MCkey.GetParentPdg();
-    //    std::cout << "MCParticle Parent PDG" << ParentPdg << std::endl;
     Position Positionvtx = MCkey.GetStopVertex();
     //Geo cut apply!!!!!!
     fTrueVtxX = Positionvtx.X();
@@ -70,17 +76,16 @@ bool SelectionEffnPurity::Execute(){
     fTrueVtxZ = Positionvtx.Z();
     IsInTank = fGeo->GetTankContained(Positionvtx);
     double clttime = MCkey.GetStopTime();
-    //fTotalQ = fClusterTotalCharge->at(clttime);
-    // std::cout << "Vertex X:-" << fTrueVtxX << "; Vertex Y:-" << fTrueVtxY << "; Vertex Z:-" << fTrueVtxZ << std::endl;
-    //    bool good_class = this->LoadTankClusterClassifiers(clttime);
-    // if (!good_class) { Log("PhaseIINeutronBG tool: NO cluster classifiers..", v_debug, verbosity); }
-    // std::cout << fClusterChargeBalance << std::endl;
+    
+    //    std::cout << "Vertex X:-" << fTrueVtxX << "; Vertex Y:-" << fTrueVtxY << "; Vertex Z:-" << fTrueVtxZ << std::endl;
+    
     if (ParticlePDG==2112 && ParentPdg ==0){
+      std::cout << "FMCParticle" << std::endl;
       nTotalTrueNeutronsWorld++;
-
+      
       if (IsInTank){ //Selecting only Inside the tank events
 	nTotalTrueNeutrons++;
-
+	
 	if (clttime <= 2000.0){
 	  //	  h_nTotalTrueNeutronsPromptNhits->Fill(MCNhits);
 	  h_nTotalTrueNeutronsPromptPDG->Fill(ParticlePDG);
@@ -119,32 +124,21 @@ bool SelectionEffnPurity::Execute(){
     fMCX = pos.X();
     fMCY = pos.Y();
     fMCZ = pos.Z();
+    fClusterChargeBalance = ClusterChargeBalances.at(clusterTime);
+    std::cout << fMCX << std::endl;
     const std::vector<MCHit>& hits = clusterKey.second;
     size_t Nhits = hits.size();
-
-    //    std::cout << "Geo contained" << IsInTank << std::endl;
-    //    std::cout << "Vertex X:-" << fTrueVtxX << ":" << fTrueVtxY << ":" << fTrueVtxZ << std::endl; 
-
-    bool good_class = this->LoadTankClusterClassifiers(clusterTime);
-    if (!good_class) { Log("PhaseIINeutronBG tool: NO cluster classifiers..", v_debug, verbosity); }
-    //    if (fTotalQ > 120){std::cout << "Magic:" << fTotalQ << std::endl;}
+    
+    //    bool good_class = this->LoadTankClusterClassifiers(clusterTime);
+    //    if (!good_class) { Log("PhaseIINeutronBG tool: NO cluster classifiers..", v_debug, verbosity); }
     //looping over all the particles from ClusterMap
     if (IsInTankMC){
       if (fBestPDG != 0){
+	std::cout << "Cluster event" << std::endl;
 	nAllSelectedClustersWorld++;
+	
 	if (clusterTime <= 2000.0){ //Prompt window && neutron selection cuts
-	  //	  std::cout <<fTotalQ << "::" << fClusterChargeBalance << std::endl;
-	  h_nAllSelectedClusterPromptClusterCharge->Fill(fTotalQ);
-	  h_nAllSelectedClusterPromptChargeBalance->Fill(fClusterChargeBalance);
-	  h_nAllSelectedClusterPromptCBCC->Fill(fTotalQ, fClusterChargeBalance);
-	  if (fBestPDG == 2112){
-	    h_nSelectedTrueNeutronsPromptClusterCharge->Fill(fTotalQ);
-	    h_nSelectedTrueNeutronsPromptBalance->Fill(fClusterChargeBalance);
-	    h_nSelectedTrueNeutronsPromptCBCC->Fill(fTotalQ, fClusterChargeBalance);
-	  };
-
-	  /*	  if (fClusterChargeBalance < 0.4 && fTotalQ < 120 && fClusterChargeBalance < 0.5 - fTotalQ / 300){
-	    //if (fClusterChargeBalance < 0.4 && fTotalQ < 120){
+	  if (fClusterChargeBalance < 0.4 && fTotalQ < 120 && fClusterChargeBalance < 0.5 - fTotalQ / 300){
 	    h_nAllSelectedClustersPromptNhits->Fill(Nhits);
 	    h_nAllSelectedClustersPromptPDG->Fill(fBestPDG);
 	    h_nAllSelectedClustersPromptCT->Fill(clusterTime);
@@ -164,12 +158,14 @@ bool SelectionEffnPurity::Execute(){
 	      h_nSelectedTrueNeutronsPromptNE->Fill(NeutrinoEnergy);
 	      nSelectedTrueNeutronsPrompt++;
 	    }
-
-	    else if (fBestPDG == 2212){nPromptProton++;
-	    h_allContaminationPrompt->Fill(1, nPromptProton);} //proton                                                
+	  }
+	}
+	
+	    //    else if (fBestPDG == 2212){nPromptProton++;}
+	    //h_allContaminationPrompt->Fill(1, nPromptProton);} //proton                                                
 	    //	    h_allContaminationPrompt->Fill(1, nPromptProton);
-	      
-	    else if (fBestPDG == -2212){nPromptAntiProton++;} //Anti-proton                                             
+	    
+	    /* else if (fBestPDG == -2212){nPromptAntiProton++;} //Anti-proton                                             
 	    else if (fBestPDG == 11){nPromptElectron++;}
 	    else if (fBestPDG == -11){nPromptPositron++;}
 	    else if (fBestPDG == 12){nPromptElectronNeutrino++;}
@@ -191,7 +187,7 @@ bool SelectionEffnPurity::Execute(){
 	    else if (fBestPDG == -14){nPromptAntiMuonNeutrino++;}
 	    else if (fBestPDG == -15){nPromptTauPlus++;}
 	    else if (fBestPDG == 15){nPromptTauMinus++;}
-
+	    
 	    else if (fBestPDG== 3122){nPromptLambda++;}
 	    else if (fBestPDG== -3122){nPromptAntiLambda++;}
 	    else if (fBestPDG== 3112 ){nPromptSigmaMinus++;}
@@ -234,23 +230,12 @@ bool SelectionEffnPurity::Execute(){
 	    else if (fBestPDG== 3337){nPromptGd156++;}
 	    else if (fBestPDG== 3338){nPromptGd157++;}
 	    else if (fBestPDG== 3339){nPromptGd155++;}
-
-	  }*/	
-	}
+	    
+	  }	
+	} */
 	else if (clusterTime > 2000.0){
-	  h_nAllSelectedClusterDelayedClusterCharge->Fill(fTotalQ);
-	  h_nAllSelectedClusterDelayedChargeBalance->Fill(fClusterChargeBalance);
-	  h_nAllSelectedClusterDelayedCBCC->Fill(fTotalQ, fClusterChargeBalance);
-	  
-	  if (fBestPDG == 2112){
-	    h_nSelectedTrueNeutronsDelayedClusterCharge->Fill(fTotalQ);
-	    h_nSelectedTrueNeutronsDelayedBalance->Fill(fClusterChargeBalance);
-	    h_nSelectedTrueNeutronsDelayedCBCC->Fill(fTotalQ, fClusterChargeBalance);
-	  };
-	  
 	  //Delayed Window
-	  /*if (fClusterChargeBalance < 0.4 && fTotalQ < 120 && fClusterChargeBalance < 0.5 - fTotalQ / 300){
-	    //	  if (fClusterChargeBalance < 0.4 && fTotalQ < 120){
+	  if (fClusterChargeBalance < 0.4 && fTotalQ < 120 && fClusterChargeBalance < 0.5 - fTotalQ / 300){
 	    h_nAllSelectedClustersDelayedNhits->Fill(Nhits);
 	    h_nAllSelectedClustersDelayedPDG->Fill(fBestPDG);
 	    h_nAllSelectedClustersDelayedCT->Fill(clusterTime);
@@ -270,8 +255,9 @@ bool SelectionEffnPurity::Execute(){
 	      h_nSelectedTrueNeutronsDelayedNE->Fill(NeutrinoEnergy);
 	      nSelectedTrueNeutronsDelayed++;
 	    }
-	    else if (fBestPDG == 2212){nDelayedProton++;} //proton                                                                                                                  
-            else if (fBestPDG == -2212){nDelayedAntiProton++;} //Anti-proton                                                                                                        
+	  }
+	    /*	    else if (fBestPDG == 2212){nDelayedProton++;} //proton                                                                                                                  
+		    else if (fBestPDG == -2212){nDelayedAntiProton++;} //Anti-proton                                                                                                        
             else if (fBestPDG == 11){nDelayedElectron++;}
             else if (fBestPDG == -11){nDelayedPositron++;}
             else if (fBestPDG == 12){nDelayedElectronNeutrino++;}
@@ -336,14 +322,14 @@ bool SelectionEffnPurity::Execute(){
             else if (fBestPDG== 3337){nDelayedGd156++;}
             else if (fBestPDG== 3338){nDelayedGd157++;}
             else if (fBestPDG== 3339){nDelayedGd155++;}
-
-
-	  }
-	  }*/  
-	} 
+	    */
+	}
+	
       }
-    }
+    }  
+    
   }
+  
   return true;
 }
 
@@ -810,21 +796,43 @@ bool SelectionEffnPurity::LoadFromStores()
     Log(logmessage, v_error, verbosity);
     return false;
     }
+
+  bool goodClusterChargeBalance =  m_data->Stores["ANNIEEvent"]->Get("ClusterChargeBalances", ClusterChargeBalances);
+  if (!goodClusterChargeBalance){
+    Log("SelectionEffnPurity tool: One of the charge cluster classifiers is not available", v_debug, verbosity);
+    return false;
+  }
+ 
   
+
+
+  /*  bool goodRawADCdata = m_data->Stores["ANNIEEvent"]->Get("RawADCData",RawADCData);
+  if (!goodRawADCdata){
+  logmessage = "SelectionEffnPurity: no RawADCData in the ANNIEEvent!";
+  Log(logmessage, v_error, verbosity);
+  return false;
+  }*/
+
+  /*  bool get_clusters = m_data->CStore.Get("ClusterMap",m_all_clusters);
+  if(!get_clusters){
+    std::cout << "BeamClusterPlots tool: No clusters found!" << std::endl;
+    return false;
+    }*/
   return true;
 }
 
-bool SelectionEffnPurity::LoadTankClusterClassifiers(double clusterTime)
+
+/*bool SelectionEffnPurity::LoadTankClusterClassifiers(double clusterTime)
 {
-
+  
   bool got_ccb = m_data->Stores["ANNIEEvent"]->Get("ClusterChargeBalances", cluster_CB);
-
+  
   bool good_class = got_ccb;
   if (!good_class) { Log("SelectionEffnPurity tool: One of the charge cluster classifiers is not available", v_debug, verbosity); }
   else
-  {
-    Log("SelectionEffnPurity tool:11 Setting fCluster variables to classifier parameters", v_debug, verbosity);
-    fClusterChargeBalance = cluster_CB.at(clusterTime);
-  }
+    {
+      Log("SelectionEffnPurity tool:11 Setting fCluster variables to classifier parameters", v_debug, verbosity);
+      fClusterChargeBalance = cluster_CB.at(clusterTime);
+    }
   return good_class;
-  }
+}*/
