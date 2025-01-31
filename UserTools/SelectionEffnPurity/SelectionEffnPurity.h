@@ -80,6 +80,9 @@ private:
   int fBestPDG, fMoreNeutronQ;
   double fEff, fPur, fTotalQ, fNeutronQ;
 
+  //combination delayed and prompt 
+  TH2F *h_nSelectedTrueNeutronsTVtxXZ = nullptr;
+  TH2F *h_nTotalTrueNeutronsTVtxXZ = nullptr;
   //Histograms
   //Neutrino Energy
   TH1F *h_nTotalTrueNeutronsPromptNE       = nullptr;
@@ -180,6 +183,11 @@ private:
   int nSelectedTrueNeutronsDelayedMichel = 0;
   int nSelectedTrueNeutronsDelayedReq = 0;
 
+  //experimenting
+  int nSumingAllTrueNeutron = 0;
+  int nSumingTotalTrueNeutron = 0;
+  
+  
   int nPromptProton = 0;
   int nPromptAntiProton = 0;
   int nPromptElectron = 0;

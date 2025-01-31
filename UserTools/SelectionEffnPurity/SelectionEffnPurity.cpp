@@ -16,6 +16,7 @@ bool SelectionEffnPurity::Initialise(std::string configfile, DataModel &data){
   /////////////////////////////////////////////////////////////////
   // this->InitHist();
   //hahaha
+  SetupTTree();
   bool gotVerbosity = m_variables.Get("verbosity", verbosity);
   if (!gotVerbosity){
     verbosity = 0;
@@ -27,12 +28,6 @@ bool SelectionEffnPurity::Initialise(std::string configfile, DataModel &data){
     Log("2. SelectionEffnPurity: \"ClusterMapName\" not set in the config! Aborting!", v_error, verbosity);
     return false;
   }
-  
-  bool gotVertexMapName = m_variables.Get("VertexMapName", fVertexMapName);
-  if (!gotVertexMapName) {
-    Log("3. SelectionEffnPurity: \"VertexMapName\" not set in the config! Aborting!", v_error, verbosity);
-    return false;
-  }
 
   bool gotGeometry = m_data->Stores.at("ANNIEEvent")->Header->Get("AnnieGeometry", fGeo);
   if(!gotGeometry){
@@ -40,16 +35,13 @@ bool SelectionEffnPurity::Initialise(std::string configfile, DataModel &data){
     return false;
   }
 
-  SetupTTree();
+  //  SetupTTree();
   InitHist(6000.);
   return true;
 }
 
 
 bool SelectionEffnPurity::Execute(){
-  if (!LoadFromStores())
-    return false;
-
   bool skip = false;
   bool goodSkipStatus = m_data->Stores.at("ANNIEEvent")->Get("SkipExecute", skip);
   if (goodSkipStatus && skip) {
@@ -57,6 +49,9 @@ bool SelectionEffnPurity::Execute(){
     Log(logmessage, v_warning, verbosity);
     return true;
   }
+  
+  if (!LoadFromStores())
+    return false;
   
   Float_t NeutrinoEnergy=-2;
   bool isok;
@@ -80,7 +75,6 @@ bool SelectionEffnPurity::Execute(){
     //    std::cout << "Vertex X:-" << fTrueVtxX << "; Vertex Y:-" << fTrueVtxY << "; Vertex Z:-" << fTrueVtxZ << std::endl;
     
     if (ParticlePDG==2112 && ParentPdg ==0){
-      std::cout << "FMCParticle" << std::endl;
       nTotalTrueNeutronsWorld++;
       
       if (IsInTank){ //Selecting only Inside the tank events
@@ -95,8 +89,12 @@ bool SelectionEffnPurity::Execute(){
 	  h_nTotalTrueNeutronsPromptTVtxXZ->Fill(fTrueVtxX, fTrueVtxZ);
 	  h_nTotalTrueNeutronsPromptNE ->Fill(NeutrinoEnergy);
 	  //	  h_nTotalTrueNeutronsPromptCC->Fill(fTotalQ);
-	  // std::cout << fTotalQ << std::endl;
+	  //	  std::cout << "Total True Neutron PROMPT" << std::endl;
+
+	  //combination of both Delayed and Prompt                                                                                                                                                           
+          h_nTotalTrueNeutronsTVtxXZ->Fill(fTrueVtxX, fTrueVtxZ);
 	  nTotalTrueNeutronsPrompt++;
+	  nSumingTotalTrueNeutron++;
 	}
 	else if (clttime > 2000.0){
 	  // h_nTotalTrueNeutronsDelayedNhits->Fill(MCNhits);
@@ -106,7 +104,12 @@ bool SelectionEffnPurity::Execute(){
 	  h_nTotalTrueNeutronsDelayedTVtxYZ->Fill(fTrueVtxY, fTrueVtxZ);
 	  h_nTotalTrueNeutronsDelayedTVtxXZ->Fill(fTrueVtxX, fTrueVtxZ);
 	  h_nTotalTrueNeutronsDelayedNE->Fill(NeutrinoEnergy);
+
+	  //combination of both Delayed and Prompt
+	  h_nTotalTrueNeutronsTVtxXZ->Fill(fTrueVtxX, fTrueVtxZ);
+	  // std::cout << "Total True Neutron DELAYED" << std::endl;
 	  nTotalTrueNeutronsDelayed++;
+	  nSumingTotalTrueNeutron++;
 	}
       }
     }
@@ -125,16 +128,13 @@ bool SelectionEffnPurity::Execute(){
     fMCY = pos.Y();
     fMCZ = pos.Z();
     fClusterChargeBalance = ClusterChargeBalances.at(clusterTime);
-    std::cout << fMCX << std::endl;
+    
     const std::vector<MCHit>& hits = clusterKey.second;
     size_t Nhits = hits.size();
     
-    //    bool good_class = this->LoadTankClusterClassifiers(clusterTime);
-    //    if (!good_class) { Log("PhaseIINeutronBG tool: NO cluster classifiers..", v_debug, verbosity); }
     //looping over all the particles from ClusterMap
     if (IsInTankMC){
       if (fBestPDG != 0){
-	std::cout << "Cluster event" << std::endl;
 	nAllSelectedClustersWorld++;
 	
 	if (clusterTime <= 2000.0){ //Prompt window && neutron selection cuts
@@ -156,16 +156,19 @@ bool SelectionEffnPurity::Execute(){
 	      h_nSelectedTrueNeutronsPromptTVtxYZ->Fill(fMCY, fMCZ);
 	      h_nSelectedTrueNeutronsPromptTVtxXZ->Fill(fMCX, fMCZ);
 	      h_nSelectedTrueNeutronsPromptNE->Fill(NeutrinoEnergy);
+	      //  std::cout<< "Selected true neutron PROMPT" << std::endl;
+
+	      //Combination of both delayed and prompt
+	      h_nSelectedTrueNeutronsTVtxXZ->Fill(fMCX, fMCZ);
 	      nSelectedTrueNeutronsPrompt++;
+	      nSumingAllTrueNeutron++;
 	    }
-	  }
-	}
 	
-	    //    else if (fBestPDG == 2212){nPromptProton++;}
+	    else if (fBestPDG == 2212){nPromptProton++;}
 	    //h_allContaminationPrompt->Fill(1, nPromptProton);} //proton                                                
 	    //	    h_allContaminationPrompt->Fill(1, nPromptProton);
 	    
-	    /* else if (fBestPDG == -2212){nPromptAntiProton++;} //Anti-proton                                             
+	    else if (fBestPDG == -2212){nPromptAntiProton++;} //Anti-proton                                             
 	    else if (fBestPDG == 11){nPromptElectron++;}
 	    else if (fBestPDG == -11){nPromptPositron++;}
 	    else if (fBestPDG == 12){nPromptElectronNeutrino++;}
@@ -232,7 +235,7 @@ bool SelectionEffnPurity::Execute(){
 	    else if (fBestPDG== 3339){nPromptGd155++;}
 	    
 	  }	
-	} */
+	}
 	else if (clusterTime > 2000.0){
 	  //Delayed Window
 	  if (fClusterChargeBalance < 0.4 && fTotalQ < 120 && fClusterChargeBalance < 0.5 - fTotalQ / 300){
@@ -253,83 +256,87 @@ bool SelectionEffnPurity::Execute(){
 	      h_nSelectedTrueNeutronsDelayedTVtxYZ->Fill(fMCY, fMCZ);
 	      h_nSelectedTrueNeutronsDelayedTVtxXZ->Fill(fMCX, fMCZ);
 	      h_nSelectedTrueNeutronsDelayedNE->Fill(NeutrinoEnergy);
+	      // std::cout << "Selected true neutrons DELAYED" << std::endl;
+	      
+	      //Combination of both delayed and prompt                                                                                                                                                       
+	      h_nSelectedTrueNeutronsTVtxXZ->Fill(fMCX, fMCZ);
 	      nSelectedTrueNeutronsDelayed++;
+	      nSumingAllTrueNeutron++;
 	    }
-	  }
-	    /*	    else if (fBestPDG == 2212){nDelayedProton++;} //proton                                                                                                                  
-		    else if (fBestPDG == -2212){nDelayedAntiProton++;} //Anti-proton                                                                                                        
-            else if (fBestPDG == 11){nDelayedElectron++;}
-            else if (fBestPDG == -11){nDelayedPositron++;}
-            else if (fBestPDG == 12){nDelayedElectronNeutrino++;}
-            else if (fBestPDG == -12){nDelayedAntiElectronNeutrino++;}
-            else if (fBestPDG == 22) {nDelayedGamma++;}
-            else if (fBestPDG == 2112) {nDelayedNeutron++;}
-            else if (fBestPDG == -2112){nDelayedAntiNeutron++;}
-            else if (fBestPDG == -13){nDelayedMuonPlus++;}
-            else if (fBestPDG == 13){nDelayedMuonMinus++;}
-            else if (fBestPDG == 130){nDelayedKaonlong++;}
-            else if (fBestPDG == 211){nDelayedPionPlus++;}
-            else if (fBestPDG == -211){nDelayedPionMinus++;}
-            else if (fBestPDG == 321){nDelayedKaonPlus++;}
-            else if (fBestPDG == -321){nDelayedKaonMinus++;}
-            else if (fBestPDG == 310){nDelayedKaonshort++;}
-            else if (fBestPDG == 111){nDelayedPion0++;}
-            else if (fBestPDG == 311){nDelayedKaon0++;}
-            else if (fBestPDG == 14){nDelayedMuonNeutrino++;}
-            else if (fBestPDG == -14){nDelayedAntiMuonNeutrino++;}
-            else if (fBestPDG == -15){nDelayedTauPlus++;}
-            else if (fBestPDG == 15){nDelayedTauMinus++;}
-
+	    
+	    
+	    else if (fBestPDG == 2212){nDelayedProton++;} //proton                                                                                                                  
+	    else if (fBestPDG == -2212){nDelayedAntiProton++;} //Anti-proton                                                                                                        
+	    else if (fBestPDG == 11){nDelayedElectron++;}
+	    else if (fBestPDG == -11){nDelayedPositron++;}
+	    else if (fBestPDG == 12){nDelayedElectronNeutrino++;}
+	    else if (fBestPDG == -12){nDelayedAntiElectronNeutrino++;}
+	    else if (fBestPDG == 22) {nDelayedGamma++;}
+	    else if (fBestPDG == 2112) {nDelayedNeutron++;}
+	    else if (fBestPDG == -2112){nDelayedAntiNeutron++;}
+	    else if (fBestPDG == -13){nDelayedMuonPlus++;}
+	    else if (fBestPDG == 13){nDelayedMuonMinus++;}
+	    else if (fBestPDG == 130){nDelayedKaonlong++;}
+	    else if (fBestPDG == 211){nDelayedPionPlus++;}
+	    else if (fBestPDG == -211){nDelayedPionMinus++;}
+	    else if (fBestPDG == 321){nDelayedKaonPlus++;}
+	    else if (fBestPDG == -321){nDelayedKaonMinus++;}
+	    else if (fBestPDG == 310){nDelayedKaonshort++;}
+	    else if (fBestPDG == 111){nDelayedPion0++;}
+	    else if (fBestPDG == 311){nDelayedKaon0++;}
+	    else if (fBestPDG == 14){nDelayedMuonNeutrino++;}
+	    else if (fBestPDG == -14){nDelayedAntiMuonNeutrino++;}
+	    else if (fBestPDG == -15){nDelayedTauPlus++;}
+	    else if (fBestPDG == 15){nDelayedTauMinus++;}
+	    
 	    else if (fBestPDG== 3122){nDelayedLambda++;}
-            else if (fBestPDG== -3122){nDelayedAntiLambda++;}
-            else if (fBestPDG== 3112 ){nDelayedSigmaMinus++;}
-            else if (fBestPDG== 3222){nDelayedSigmaPlus++;}
-            else if (fBestPDG== 3212){nDelayedSigma0++;}
-            else if (fBestPDG== -311){nDelayedAntiKaon0++;}
-            else if (fBestPDG== -3222){nDelayedAntiSigmaMinus++;}
-            else if (fBestPDG== -3212){nDelayedAntiSigma0++;}
-            else if (fBestPDG== -3112){nDelayedAntiSigmaPlus++;}
-            else if (fBestPDG== 3322){nDelayedXsi0++;}
-            else if (fBestPDG== -3322){nDelayedAntiXsi0++;}
-            else if (fBestPDG== 3312){nDelayedXsiMinus++;}
-            else if (fBestPDG== -3312){nDelayedXsiPlus++;}
-            else if (fBestPDG== 3334){nDelayedOmegaMinus++;}
-            else if (fBestPDG== -3334){nDelayedOmegaPlus++;}
-            else if (fBestPDG== 100){nDelayedOpticalPhoton++;}
-            else if (fBestPDG== 3328){nDelayedAlpha++;}
-            else if (fBestPDG== 3329){nDelayedDeuteron++;}
-            else if (fBestPDG== 3330){nDelayedTriton++;}
-            else if (fBestPDG== 3351){nDelayedLi7++;}
-            else if (fBestPDG== 3331){nDelayedC10++;}
-            else if (fBestPDG== 3345){nDelayedB11++;}
-            else if (fBestPDG== 3332){nDelayedC12++;}
-            else if (fBestPDG== 3350){nDelayedC13++;}
-            else if (fBestPDG== 3349){nDelayedN13++;}
-            else if (fBestPDG== 3340){nDelayedN14++;}
-            else if (fBestPDG== 3333){nDelayedN15++;}
-            else if (fBestPDG== 3334){nDelayedN16++;}
-            else if (fBestPDG== 3335){nDelayedO16++;}
-            else if (fBestPDG== 3346){nDelayedAl27++;}
-            else if (fBestPDG== 3341){nDelayedFe54++;}
-            else if (fBestPDG== 3348){nDelayedMn54++;}
-            else if (fBestPDG== 3342){nDelayedMn55++;}
-            else if (fBestPDG== 3352){nDelayedMn56++;}
-            else if (fBestPDG== 3343){nDelayedFe56++;}
-            else if (fBestPDG== 3344){nDelayedFe57++;}
-            else if (fBestPDG== 3347){nDelayedFe58++;}
-            else if (fBestPDG== 3353){nDelayedEu154++;}
-            else if (fBestPDG== 3336){nDelayedGd158++;}
-            else if (fBestPDG== 3337){nDelayedGd156++;}
-            else if (fBestPDG== 3338){nDelayedGd157++;}
-            else if (fBestPDG== 3339){nDelayedGd155++;}
-	    */
-	}
-	
+	    else if (fBestPDG== -3122){nDelayedAntiLambda++;}
+	    else if (fBestPDG== 3112 ){nDelayedSigmaMinus++;}
+	    else if (fBestPDG== 3222){nDelayedSigmaPlus++;}
+	    else if (fBestPDG== 3212){nDelayedSigma0++;}
+	    else if (fBestPDG== -311){nDelayedAntiKaon0++;}
+	    else if (fBestPDG== -3222){nDelayedAntiSigmaMinus++;}
+	    else if (fBestPDG== -3212){nDelayedAntiSigma0++;}
+	    else if (fBestPDG== -3112){nDelayedAntiSigmaPlus++;}
+	    else if (fBestPDG== 3322){nDelayedXsi0++;}
+	    else if (fBestPDG== -3322){nDelayedAntiXsi0++;}
+	    else if (fBestPDG== 3312){nDelayedXsiMinus++;}
+	    else if (fBestPDG== -3312){nDelayedXsiPlus++;}
+	    else if (fBestPDG== 3334){nDelayedOmegaMinus++;}
+	    else if (fBestPDG== -3334){nDelayedOmegaPlus++;}
+	    else if (fBestPDG== 100){nDelayedOpticalPhoton++;}
+	    else if (fBestPDG== 3328){nDelayedAlpha++;}
+	    else if (fBestPDG== 3329){nDelayedDeuteron++;}
+	    else if (fBestPDG== 3330){nDelayedTriton++;}
+	    else if (fBestPDG== 3351){nDelayedLi7++;}
+	    else if (fBestPDG== 3331){nDelayedC10++;}
+	    else if (fBestPDG== 3345){nDelayedB11++;}
+	    else if (fBestPDG== 3332){nDelayedC12++;}
+	    else if (fBestPDG== 3350){nDelayedC13++;}
+	    else if (fBestPDG== 3349){nDelayedN13++;}
+	    else if (fBestPDG== 3340){nDelayedN14++;}
+	    else if (fBestPDG== 3333){nDelayedN15++;}
+	    else if (fBestPDG== 3334){nDelayedN16++;}
+	    else if (fBestPDG== 3335){nDelayedO16++;}
+	    else if (fBestPDG== 3346){nDelayedAl27++;}
+	    else if (fBestPDG== 3341){nDelayedFe54++;}
+	    else if (fBestPDG== 3348){nDelayedMn54++;}
+	    else if (fBestPDG== 3342){nDelayedMn55++;}
+	    else if (fBestPDG== 3352){nDelayedMn56++;}
+	    else if (fBestPDG== 3343){nDelayedFe56++;}
+	    else if (fBestPDG== 3344){nDelayedFe57++;}
+	    else if (fBestPDG== 3347){nDelayedFe58++;}
+	    else if (fBestPDG== 3353){nDelayedEu154++;}
+	    else if (fBestPDG== 3336){nDelayedGd158++;}
+	    else if (fBestPDG== 3337){nDelayedGd156++;}
+	    else if (fBestPDG== 3338){nDelayedGd157++;}
+	    else if (fBestPDG== 3339){nDelayedGd155++;}
+	    
+	  }
+	}  
       }
-    }  
-    
+    }
   }
-  
   return true;
 }
 
@@ -345,6 +352,8 @@ bool SelectionEffnPurity::Finalise(){
   std::cout << "All Selected Cluster Delayed:-" << nAllSelectedClustersDelayed << std::endl;
   std::cout << "Selected True Neutrons Delayed:-" << nSelectedTrueNeutronsDelayed << std::endl;
 
+  std::cout << "Sum of all Total True Neutrons:-" << nSumingTotalTrueNeutron <<std::endl;
+  std::cout << "Sum of All selected True Neutrons:-" << nSumingAllTrueNeutron << std::endl;
   //Containimation outputs
   std::cout << "Contamination of nPromptProton:-" << nPromptProton << std::endl;
   std::cout << "Contamination of nPromptAntiProton:-" << nPromptAntiProton << std::endl;
@@ -624,6 +633,9 @@ void SelectionEffnPurity::InitHist(double max)
   h_allContaminationPrompt = new TH1F("h_allContaminationPrompt", "h_allContaminationPrompt", 150, 0, 150);
   h_allContaminationDelayed = new TH1F("h_allContaminationDelayed", "h_allContaminationDelayed", 150, 0, 150);
 
+  //Combination of delayed and prompt
+  h_nTotalTrueNeutronsTVtxXZ = new TH2F("h_nTotalTrueNeutronsAllTVtxXZ", "h_nTotalTrueNeutronsAllTVtxXZ", 40, -5, 5, 40, -5, 5);
+  h_nSelectedTrueNeutronsTVtxXZ = new TH2F("h_nSelectedTrueNeutronsAllTVtxXZ", "h_nSelectedTrueNeutronsAllTVtxXZ", 40, -5, 5, 40, -5, 5);
   
   //Need to write histograms for the ClusterCharge and Charge Balance here and write it below the histograms
   h_nAllSelectedClusterPromptClusterCharge = new TH1F("h_nAllSelectedClusterPromptClusterCharge", "h_nAllSelectedClusterPromptClusterCharge", 50, 0, 300);
@@ -653,6 +665,10 @@ void SelectionEffnPurity::WriteHist()
   TDirectory *dir_allhist = fOutFile->mkdir("Histograms");
   dir_allhist->cd();
 
+  //combination of delayed and prompt hists
+  h_nSelectedTrueNeutronsTVtxXZ->Write();
+  h_nTotalTrueNeutronsTVtxXZ->Write();
+  
   h_nTotalTrueNeutronsPromptNE->Write();
   h_nTotalTrueNeutronsDelayedNE->Write();
   h_nAllSelectedClustersPromptNE->Write();
@@ -790,49 +806,12 @@ bool SelectionEffnPurity::LoadFromStores()
     return false;
   }
   
-  bool goodClusterNeutronCharge = m_data->Stores.at("ANNIEEvent")->Get("ClusterNeutronCharge", fClusterNeutronCharge);
-  if (!goodClusterNeutronCharge) {
-    logmessage = "1.10 SelectionEffnPurity:no ClusterNeutronCharge in the ANNIEEvent!";
-    Log(logmessage, v_error, verbosity);
-    return false;
-    }
-
   bool goodClusterChargeBalance =  m_data->Stores["ANNIEEvent"]->Get("ClusterChargeBalances", ClusterChargeBalances);
   if (!goodClusterChargeBalance){
     Log("SelectionEffnPurity tool: One of the charge cluster classifiers is not available", v_debug, verbosity);
     return false;
   }
- 
-  
 
-
-  /*  bool goodRawADCdata = m_data->Stores["ANNIEEvent"]->Get("RawADCData",RawADCData);
-  if (!goodRawADCdata){
-  logmessage = "SelectionEffnPurity: no RawADCData in the ANNIEEvent!";
-  Log(logmessage, v_error, verbosity);
-  return false;
-  }*/
-
-  /*  bool get_clusters = m_data->CStore.Get("ClusterMap",m_all_clusters);
-  if(!get_clusters){
-    std::cout << "BeamClusterPlots tool: No clusters found!" << std::endl;
-    return false;
-    }*/
   return true;
 }
 
-
-/*bool SelectionEffnPurity::LoadTankClusterClassifiers(double clusterTime)
-{
-  
-  bool got_ccb = m_data->Stores["ANNIEEvent"]->Get("ClusterChargeBalances", cluster_CB);
-  
-  bool good_class = got_ccb;
-  if (!good_class) { Log("SelectionEffnPurity tool: One of the charge cluster classifiers is not available", v_debug, verbosity); }
-  else
-    {
-      Log("SelectionEffnPurity tool:11 Setting fCluster variables to classifier parameters", v_debug, verbosity);
-      fClusterChargeBalance = cluster_CB.at(clusterTime);
-    }
-  return good_class;
-}*/
