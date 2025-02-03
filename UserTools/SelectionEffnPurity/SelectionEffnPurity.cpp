@@ -1,7 +1,7 @@
 #include "SelectionEffnPurity.h"
 #include <iostream>
 #include <fstream>
-
+#include <map>
 
 SelectionEffnPurity::SelectionEffnPurity():Tool(){}
 
@@ -14,9 +14,9 @@ bool SelectionEffnPurity::Initialise(std::string configfile, DataModel &data){
 
   m_data= &data; //assigning transient data pointer
   /////////////////////////////////////////////////////////////////
-  // this->InitHist();
-  //hahaha
+
   SetupTTree();
+
   bool gotVerbosity = m_variables.Get("verbosity", verbosity);
   if (!gotVerbosity){
     verbosity = 0;
@@ -35,7 +35,7 @@ bool SelectionEffnPurity::Initialise(std::string configfile, DataModel &data){
     return false;
   }
 
-  //  SetupTTree();
+
   InitHist(6000.);
   return true;
 }
@@ -114,6 +114,7 @@ bool SelectionEffnPurity::Execute(){
       }
     }
   }
+  
   double hits = 0;
   for (auto& clusterKey : *fClusterMap){
     double clusterTime = clusterKey.first;
@@ -131,6 +132,9 @@ bool SelectionEffnPurity::Execute(){
     
     const std::vector<MCHit>& hits = clusterKey.second;
     size_t Nhits = hits.size();
+
+    //    std::map<int, int> ParticleCountsDelayed;
+    //    std::map<int, int> ParticleCountsPrompt;
     
     //looping over all the particles from ClusterMap
     if (IsInTankMC){
@@ -164,76 +168,7 @@ bool SelectionEffnPurity::Execute(){
 	      nSumingAllTrueNeutron++;
 	    }
 	
-	    else if (fBestPDG == 2212){nPromptProton++;}
-	    //h_allContaminationPrompt->Fill(1, nPromptProton);} //proton                                                
-	    //	    h_allContaminationPrompt->Fill(1, nPromptProton);
-	    
-	    else if (fBestPDG == -2212){nPromptAntiProton++;} //Anti-proton                                             
-	    else if (fBestPDG == 11){nPromptElectron++;}
-	    else if (fBestPDG == -11){nPromptPositron++;}
-	    else if (fBestPDG == 12){nPromptElectronNeutrino++;}
-	    else if (fBestPDG == -12){nPromptAntiElectronNeutrino++;}
-	    else if (fBestPDG == 22) {nPromptGamma++;}
-	    else if (fBestPDG == 2112) {nPromptNeutron++;}
-	    else if (fBestPDG == -2112){nPromptAntiNeutron++;}
-	    else if (fBestPDG == -13){nPromptMuonPlus++;}
-	    else if (fBestPDG == 13){nPromptMuonMinus++;}
-	    else if (fBestPDG == 130){nPromptKaonlong++;}
-	    else if (fBestPDG == 211){nPromptPionPlus++;}
-	    else if (fBestPDG == -211){nPromptPionMinus++;}
-	    else if (fBestPDG == 321){nPromptKaonPlus++;}
-	    else if (fBestPDG == -321){nPromptKaonMinus++;}
-	    else if (fBestPDG == 310){nPromptKaonshort++;}
-	    else if (fBestPDG == 111){nPromptPion0++;}
-	    else if (fBestPDG == 311){nPromptKaon0++;}
-	    else if (fBestPDG == 14){nPromptMuonNeutrino++;}
-	    else if (fBestPDG == -14){nPromptAntiMuonNeutrino++;}
-	    else if (fBestPDG == -15){nPromptTauPlus++;}
-	    else if (fBestPDG == 15){nPromptTauMinus++;}
-	    
-	    else if (fBestPDG== 3122){nPromptLambda++;}
-	    else if (fBestPDG== -3122){nPromptAntiLambda++;}
-	    else if (fBestPDG== 3112 ){nPromptSigmaMinus++;}
-	    else if (fBestPDG== 3222){nPromptSigmaPlus++;}
-	    else if (fBestPDG== 3212){nPromptSigma0++;}
-	    else if (fBestPDG== -311){nPromptAntiKaon0++;}
-	    else if (fBestPDG== -3222){nPromptAntiSigmaMinus++;}
-	    else if (fBestPDG== -3212){nPromptAntiSigma0++;}
-	    else if (fBestPDG== -3112){nPromptAntiSigmaPlus++;}
-	    else if (fBestPDG== 3322){nPromptXsi0++;}
-	    else if (fBestPDG== -3322){nPromptAntiXsi0++;}
-	    else if (fBestPDG== 3312){nPromptXsiMinus++;}
-	    else if (fBestPDG== -3312){nPromptXsiPlus++;}
-	    else if (fBestPDG== 3334){nPromptOmegaMinus++;}
-	    else if (fBestPDG== -3334){nPromptOmegaPlus++;}
-	    else if (fBestPDG== 100){nPromptOpticalPhoton++;}
-	    else if (fBestPDG== 3328){nPromptAlpha++;}
-	    else if (fBestPDG== 3329){nPromptDeuteron++;}
-	    else if (fBestPDG== 3330){nPromptTriton++;}
-	    else if (fBestPDG== 3351){nPromptLi7++;}
-	    else if (fBestPDG== 3331){nPromptC10++;}
-	    else if (fBestPDG== 3345){nPromptB11++;}
-	    else if (fBestPDG== 3332){nPromptC12++;}
-	    else if (fBestPDG== 3350){nPromptC13++;}
-	    else if (fBestPDG== 3349){nPromptN13++;}
-	    else if (fBestPDG== 3340){nPromptN14++;}
-	    else if (fBestPDG== 3333){nPromptN15++;}
-	    else if (fBestPDG== 3334){nPromptN16++;}
-	    else if (fBestPDG== 3335){nPromptO16++;}
-	    else if (fBestPDG== 3346){nPromptAl27++;}
-	    else if (fBestPDG== 3341){nPromptFe54++;}
-	    else if (fBestPDG== 3348){nPromptMn54++;}
-	    else if (fBestPDG== 3342){nPromptMn55++;}
-	    else if (fBestPDG== 3352){nPromptMn56++;}
-	    else if (fBestPDG== 3343){nPromptFe56++;}
-	    else if (fBestPDG== 3344){nPromptFe57++;}
-	    else if (fBestPDG== 3347){nPromptFe58++;}
-	    else if (fBestPDG== 3353){nPromptEu154++;}
-	    else if (fBestPDG== 3336){nPromptGd158++;}
-	    else if (fBestPDG== 3337){nPromptGd156++;}
-	    else if (fBestPDG== 3338){nPromptGd157++;}
-	    else if (fBestPDG== 3339){nPromptGd155++;}
-	    
+	    ParticleCountsPrompt[fBestPDG]++;
 	  }	
 	}
 	else if (clusterTime > 2000.0){
@@ -264,82 +199,15 @@ bool SelectionEffnPurity::Execute(){
 	      nSumingAllTrueNeutron++;
 	    }
 	    
-	    
-	    else if (fBestPDG == 2212){nDelayedProton++;} //proton                                                                                                                  
-	    else if (fBestPDG == -2212){nDelayedAntiProton++;} //Anti-proton                                                                                                        
-	    else if (fBestPDG == 11){nDelayedElectron++;}
-	    else if (fBestPDG == -11){nDelayedPositron++;}
-	    else if (fBestPDG == 12){nDelayedElectronNeutrino++;}
-	    else if (fBestPDG == -12){nDelayedAntiElectronNeutrino++;}
-	    else if (fBestPDG == 22) {nDelayedGamma++;}
-	    else if (fBestPDG == 2112) {nDelayedNeutron++;}
-	    else if (fBestPDG == -2112){nDelayedAntiNeutron++;}
-	    else if (fBestPDG == -13){nDelayedMuonPlus++;}
-	    else if (fBestPDG == 13){nDelayedMuonMinus++;}
-	    else if (fBestPDG == 130){nDelayedKaonlong++;}
-	    else if (fBestPDG == 211){nDelayedPionPlus++;}
-	    else if (fBestPDG == -211){nDelayedPionMinus++;}
-	    else if (fBestPDG == 321){nDelayedKaonPlus++;}
-	    else if (fBestPDG == -321){nDelayedKaonMinus++;}
-	    else if (fBestPDG == 310){nDelayedKaonshort++;}
-	    else if (fBestPDG == 111){nDelayedPion0++;}
-	    else if (fBestPDG == 311){nDelayedKaon0++;}
-	    else if (fBestPDG == 14){nDelayedMuonNeutrino++;}
-	    else if (fBestPDG == -14){nDelayedAntiMuonNeutrino++;}
-	    else if (fBestPDG == -15){nDelayedTauPlus++;}
-	    else if (fBestPDG == 15){nDelayedTauMinus++;}
-	    
-	    else if (fBestPDG== 3122){nDelayedLambda++;}
-	    else if (fBestPDG== -3122){nDelayedAntiLambda++;}
-	    else if (fBestPDG== 3112 ){nDelayedSigmaMinus++;}
-	    else if (fBestPDG== 3222){nDelayedSigmaPlus++;}
-	    else if (fBestPDG== 3212){nDelayedSigma0++;}
-	    else if (fBestPDG== -311){nDelayedAntiKaon0++;}
-	    else if (fBestPDG== -3222){nDelayedAntiSigmaMinus++;}
-	    else if (fBestPDG== -3212){nDelayedAntiSigma0++;}
-	    else if (fBestPDG== -3112){nDelayedAntiSigmaPlus++;}
-	    else if (fBestPDG== 3322){nDelayedXsi0++;}
-	    else if (fBestPDG== -3322){nDelayedAntiXsi0++;}
-	    else if (fBestPDG== 3312){nDelayedXsiMinus++;}
-	    else if (fBestPDG== -3312){nDelayedXsiPlus++;}
-	    else if (fBestPDG== 3334){nDelayedOmegaMinus++;}
-	    else if (fBestPDG== -3334){nDelayedOmegaPlus++;}
-	    else if (fBestPDG== 100){nDelayedOpticalPhoton++;}
-	    else if (fBestPDG== 3328){nDelayedAlpha++;}
-	    else if (fBestPDG== 3329){nDelayedDeuteron++;}
-	    else if (fBestPDG== 3330){nDelayedTriton++;}
-	    else if (fBestPDG== 3351){nDelayedLi7++;}
-	    else if (fBestPDG== 3331){nDelayedC10++;}
-	    else if (fBestPDG== 3345){nDelayedB11++;}
-	    else if (fBestPDG== 3332){nDelayedC12++;}
-	    else if (fBestPDG== 3350){nDelayedC13++;}
-	    else if (fBestPDG== 3349){nDelayedN13++;}
-	    else if (fBestPDG== 3340){nDelayedN14++;}
-	    else if (fBestPDG== 3333){nDelayedN15++;}
-	    else if (fBestPDG== 3334){nDelayedN16++;}
-	    else if (fBestPDG== 3335){nDelayedO16++;}
-	    else if (fBestPDG== 3346){nDelayedAl27++;}
-	    else if (fBestPDG== 3341){nDelayedFe54++;}
-	    else if (fBestPDG== 3348){nDelayedMn54++;}
-	    else if (fBestPDG== 3342){nDelayedMn55++;}
-	    else if (fBestPDG== 3352){nDelayedMn56++;}
-	    else if (fBestPDG== 3343){nDelayedFe56++;}
-	    else if (fBestPDG== 3344){nDelayedFe57++;}
-	    else if (fBestPDG== 3347){nDelayedFe58++;}
-	    else if (fBestPDG== 3353){nDelayedEu154++;}
-	    else if (fBestPDG== 3336){nDelayedGd158++;}
-	    else if (fBestPDG== 3337){nDelayedGd156++;}
-	    else if (fBestPDG== 3338){nDelayedGd157++;}
-	    else if (fBestPDG== 3339){nDelayedGd155++;}
-	    
+	    ParticleCountsDelayed[fBestPDG]++;
 	  }
 	}  
       }
     }
   }
+
   return true;
 }
-
 
 bool SelectionEffnPurity::Finalise(){
   std::cout << "Total True Neutrons before geo cut:-" << nTotalTrueNeutronsWorld << std::endl;
@@ -354,64 +222,28 @@ bool SelectionEffnPurity::Finalise(){
 
   std::cout << "Sum of all Total True Neutrons:-" << nSumingTotalTrueNeutron <<std::endl;
   std::cout << "Sum of All selected True Neutrons:-" << nSumingAllTrueNeutron << std::endl;
-  //Containimation outputs
-  std::cout << "Contamination of nPromptProton:-" << nPromptProton << std::endl;
-  std::cout << "Contamination of nPromptAntiProton:-" << nPromptAntiProton << std::endl;
-  std::cout << "Contamination of nPromptElectron:-" << nPromptElectron << std::endl;
-  std::cout << "Contamination of nPromptPositron:-" << nPromptPositron <<std::endl;
-  std::cout << "Contamination of nPromptElectronNeutrino:-" << nPromptElectronNeutrino<<std::endl;
-  std::cout << "Contamination of nPromptAntiElectronNeutrino:-" << nPromptAntiElectronNeutrino <<std::endl;
-  std::cout << "Contamination of nPromptGamma:-" << nPromptGamma<<std::endl;
-  std::cout << "Contamination of nPromptNeutron:-" << nPromptNeutron<<std::endl;
-  std::cout << "Contamination of nPromptAntiNeutron:-" << nPromptAntiNeutron<<std::endl;
-  std::cout << "Contamination of nPromptMuonPlus:-" << nPromptMuonPlus<<std::endl;
-  std::cout << "Contamination of nPromptMuonMinus:-" << nPromptMuonMinus<<std::endl;
-  std::cout << "Contamination of nPromptKaonlong:-" << nPromptKaonlong<<std::endl;
-  std::cout << "Contamination of nPromptPionPlus:-" << nPromptPionPlus<<std::endl;
-  std::cout << "Contamination of nPromptPionMinus:-" << nPromptPionMinus<<std::endl;
-  std::cout << "Contamination of nPromptKaonPlus:-" << nPromptKaonPlus<<std::endl;
-  std::cout << "Contamination of nPromptKaonMinus:-" << nPromptKaonMinus<<std::endl;
-  std::cout << "Contamination of nPromptKaonshort:-" << nPromptKaonshort<<std::endl;
-  std::cout << "Contamination of nPromptPion0:-" << nPromptPion0<<std::endl;
-  std::cout << "Contamination of nPromptKaon0:-" << nPromptKaon0<<std::endl;
-  std::cout << "Contamination of nPromptMuonNeutrino:-" << nPromptMuonNeutrino<<std::endl;
-  std::cout << "Contamination of nPromptAntiMuonNeutrino:-" << nPromptAntiMuonNeutrino<<std::endl;
-  std::cout << "Contamination of nPromptTauPlus:-" << nPromptTauPlus<<std::endl;
-  std::cout << "Contamination of nPromptTauMinus:-" << nPromptTauMinus<<std::endl;
 
-  std::cout << "Contamination of nDelayedProton:-" << nDelayedProton<<std::endl;
-  std::cout << "Contamination of nDelayedAntiProton:-" << nDelayedAntiProton<<std::endl;
-  std::cout << "Contamination of nDelayedElectron:-" << nDelayedElectron<<std::endl;
-  std::cout << "Contamination of nDelayedPositron:-" << nDelayedPositron<<std::endl;
-  std::cout << "Contamination of nDelayedElectronNeutrino:-" << nDelayedElectronNeutrino<<std::endl;
-  std::cout << "Contamination of nDelayedAntiElectronNeutrino:-" << nDelayedAntiElectronNeutrino<<std::endl;
-  std::cout << "Contamination of nDelayedGamma:-" << nDelayedGamma<<std::endl;
-  std::cout << "Contamination of nDelayedNeutron:-" << nDelayedNeutron<<std::endl;
-  std::cout << "Contamination of nDelayedAntiNeutron:-" << nDelayedAntiNeutron<<std::endl;
-  std::cout << "Contamination of nDelayedMuonPlus:-" << nDelayedMuonPlus<<std::endl;
-  std::cout << "Contamination of nDelayedMuonMinus:-" << nDelayedMuonMinus<<std::endl;
-  std::cout << "Contamination of nDelayedKaonlong:-" << nDelayedKaonlong<<std::endl;
-  std::cout << "Contamination of nDelayedPionPlus:-" << nDelayedPionPlus<<std::endl;
-  std::cout << "Contamination of nDelayedPionMinus:-" << nDelayedPionMinus<<std::endl;
-  std::cout << "Contamination of nDelayedKaonPlus:-" << nDelayedKaonPlus<<std::endl;
-  std::cout << "Contamination of nDelayedKaonMinus:-" << nDelayedKaonMinus<<std::endl;
-  std::cout << "Contamination of nDelayedKaonshort:-" << nDelayedKaonshort<<std::endl;
-  std::cout << "Contamination of nDelayedPion0:-" << nDelayedPion0<<std::endl;
-  std::cout << "Contamination of nDelayedKaon0:-" << nDelayedKaon0<<std::endl;
-  std::cout << "Contamination of nDelayedMuonNeutrino:-" << nDelayedMuonNeutrino<<std::endl;
-  std::cout << "Contamination of nDelayedAntiMuonNeutrino:-" << nDelayedAntiMuonNeutrino<<std::endl;
-  std::cout << "Contamination of nDelayedTauPlus:-" << nDelayedTauPlus<<std::endl;
-  std::cout << "Contamination of nDelayedTauMinus:-" << nDelayedTauMinus<<std::endl;
+  this->WriteHist();
 
+  //Stores all particle information along with its PDG code for calculating contamination
+  std::ofstream Delayed("ParticleCountsDelayed.csv", std::ios::trunc);
+  Delayed << "PDG,Count\n";
+  for (const auto& entry : ParticleCountsDelayed) {
+    Delayed << entry.first << "," << entry.second << "\n"; // Write particle PDG and count to CSV                                                                                                             
+  }
+  Delayed.close();
   
+  std::ofstream Prompt("ParticleCountsPrompt.csv", std::ios::trunc);
+  Prompt << "PDG,Count\n";
+  for (const auto& promptentry : ParticleCountsPrompt) {
+    Prompt << promptentry.first << "," << promptentry.second << "\n"; // Write particle PDG and count to CSV                                                                                                                                                                                                                                                                                                            
+  }
+  Prompt.close();
+
   fOutTree->Fill();
-  fOutTreeContPrompt->Fill();
-  fOutTreeContDelayed->Fill();
   fOutFile->cd();
   fOutTree->Write();
-  fOutTreeContPrompt->Write();
-  fOutTreeContDelayed->Write();
-  this->WriteHist();
+  //  this->WriteHist();
   fOutFile->Close();
   return true;
 }
@@ -421,8 +253,6 @@ void SelectionEffnPurity::SetupTTree()
   
   fOutFile = new TFile("SelectionEffnPurity.root", "RECREATE");
   fOutTree = new TTree("tree", "tree");
-  fOutTreeContPrompt = new TTree("ContaminationPrompt", "ContaminationPrompt");  
-  fOutTreeContDelayed = new TTree("ContaminationDelayed", "ContaminationDelayed");
   
   fOutTree->Branch("nTotalTrueNeutronsWorld",            &nTotalTrueNeutronsWorld);
   fOutTree->Branch("nTotalTrueNeutrons",                 &nTotalTrueNeutrons);
@@ -433,143 +263,6 @@ void SelectionEffnPurity::SetupTTree()
   fOutTree->Branch("nSelectedTrueNeutronsPrompt",        &nSelectedTrueNeutronsPrompt);
   fOutTree->Branch("nAllSelectedClustersDelayed",        &nAllSelectedClustersDelayed);
   fOutTree->Branch("nSelectedTrueNeutronsDelayed",       &nSelectedTrueNeutronsDelayed);
-
-  fOutTreeContPrompt->Branch("nPromptProton", &nPromptProton);
-  fOutTreeContPrompt->Branch("nPromptAntiProton", &nPromptAntiProton);
-  fOutTreeContPrompt->Branch("nPromptElectron", &nPromptElectron);
-  fOutTreeContPrompt->Branch("nPromptPositron", &nPromptPositron );
-  fOutTreeContPrompt->Branch("nPromptElectronNeutrino", &nPromptElectronNeutrino );
-  fOutTreeContPrompt->Branch("nPromptAntiElectronNeutrino", &nPromptAntiElectronNeutrino );
-  fOutTreeContPrompt->Branch("nPromptGamma", &nPromptGamma );
-  fOutTreeContPrompt->Branch("nPromptNeutron", &nPromptNeutron );
-  fOutTreeContPrompt->Branch("nPromptAntiNeutron", &nPromptAntiNeutron );
-  fOutTreeContPrompt->Branch("nPromptMuonPlus", &nPromptMuonPlus );
-  fOutTreeContPrompt->Branch("nPromptMuonMinus", &nPromptMuonMinus );
-  fOutTreeContPrompt->Branch("nPromptKaonlong", &nPromptKaonlong );
-  fOutTreeContPrompt->Branch("nPromptPionPlus", &nPromptPionPlus );
-  fOutTreeContPrompt->Branch("nPromptPionMinus", &nPromptPionMinus );
-  fOutTreeContPrompt->Branch("nPromptKaonPlus", &nPromptKaonPlus );
-  fOutTreeContPrompt->Branch("nPromptKaonMinus", &nPromptKaonMinus );
-  fOutTreeContPrompt->Branch("nPromptKaonshort", &nPromptKaonshort );
-  fOutTreeContPrompt->Branch("nPromptPion0", &nPromptPion0 );
-  fOutTreeContPrompt->Branch("nPromptKaon0", &nPromptKaon0 );
-  fOutTreeContPrompt->Branch("nPromptMuonNeutrino", &nPromptMuonNeutrino );
-  fOutTreeContPrompt->Branch("nPromptAntiMuonNeutrino", &nPromptAntiMuonNeutrino );
-  fOutTreeContPrompt->Branch("nPromptTauPlus", &nPromptTauPlus );
-  fOutTreeContPrompt->Branch("nPromptTauMinus", &nPromptTauMinus );
-
-
-  fOutTreeContPrompt->Branch("nPromptLambda", &nPromptLambda );
-  fOutTreeContPrompt->Branch("nPromptAntiLambda", &nPromptAntiLambda );
-  fOutTreeContPrompt->Branch("nPromptSigmaMinus", &nPromptSigmaMinus );
-  fOutTreeContPrompt->Branch("nPromptSigmaPlus", &nPromptSigmaPlus );
-  fOutTreeContPrompt->Branch("nPromptSigma0", &nPromptSigma0 );
-  fOutTreeContPrompt->Branch("nPromptAntiKaon0", &nPromptAntiKaon0 );
-  fOutTreeContPrompt->Branch("nPromptAntiSigmaMinus", &nPromptAntiSigmaMinus );
-  fOutTreeContPrompt->Branch("nPromptAntiSigma0", &nPromptAntiSigma0 );
-  fOutTreeContPrompt->Branch("nPromptAntiSigmaPlus", &nPromptAntiSigmaPlus );
-  fOutTreeContPrompt->Branch("nPromptXsi0", &nPromptXsi0 );
-  fOutTreeContPrompt->Branch("nPromptAntiXsi0", &nPromptAntiXsi0 );
-  fOutTreeContPrompt->Branch("nPromptXsiMinus", &nPromptXsiMinus );
-  fOutTreeContPrompt->Branch("nPromptXsiPlus", &nPromptXsiPlus );
-  fOutTreeContPrompt->Branch("nPromptOmegaMinus", &nPromptOmegaMinus );
-  fOutTreeContPrompt->Branch("nPromptOmegaPlus", &nPromptOmegaPlus );
-  fOutTreeContPrompt->Branch("nPromptOpticalPhoton", &nPromptOpticalPhoton );
-  fOutTreeContPrompt->Branch("nPromptAlpha", &nPromptAlpha );
-  fOutTreeContPrompt->Branch("nPromptDeuteron", &nPromptDeuteron );
-  fOutTreeContPrompt->Branch("nPromptTriton", &nPromptTriton );
-  fOutTreeContPrompt->Branch("nPromptLi7", &nPromptLi7 );
-  fOutTreeContPrompt->Branch("nPromptC10", &nPromptC10 );
-  fOutTreeContPrompt->Branch("nPromptB11", &nPromptB11 );
-  fOutTreeContPrompt->Branch("nPromptC12", &nPromptC12 );
-  fOutTreeContPrompt->Branch("nPromptC13", &nPromptC13 );
-  fOutTreeContPrompt->Branch("nPromptN13", &nPromptN13 );
-  fOutTreeContPrompt->Branch("nPromptN14", &nPromptN14 );
-  fOutTreeContPrompt->Branch("nPromptN15", &nPromptN15 );
-  fOutTreeContPrompt->Branch("nPromptN16", &nPromptN16 );
-  fOutTreeContPrompt->Branch("nPromptO16", &nPromptO16 );
-  fOutTreeContPrompt->Branch("nPromptAl27", &nPromptAl27 );
-  fOutTreeContPrompt->Branch("nPromptFe54", &nPromptFe54 );
-  fOutTreeContPrompt->Branch("nPromptMn54", &nPromptMn54 );
-  fOutTreeContPrompt->Branch("nPromptMn55", &nPromptMn55 );
-  fOutTreeContPrompt->Branch("nPromptMn56", &nPromptMn56 );
-  fOutTreeContPrompt->Branch("nPromptFe56", &nPromptFe56 );
-  fOutTreeContPrompt->Branch("nPromptFe57", &nPromptFe57 );
-  fOutTreeContPrompt->Branch("nPromptFe58", &nPromptFe58 );
-  fOutTreeContPrompt->Branch("nPromptEu154", &nPromptEu154 );
-  fOutTreeContPrompt->Branch("nPromptGd158", &nPromptGd158 );
-  fOutTreeContPrompt->Branch("nPromptGd156", &nPromptGd156 );
-  fOutTreeContPrompt->Branch("nPromptGd157", &nPromptGd157 );
-  fOutTreeContPrompt->Branch("nPromptGd155", &nPromptGd155 );
-
-  
-  fOutTreeContDelayed->Branch("nDelayedProton", &nDelayedProton );
-  fOutTreeContDelayed->Branch("nDelayedAntiProton", &nDelayedAntiProton );
-  fOutTreeContDelayed->Branch("nDelayedElectron", &nDelayedElectron );
-  fOutTreeContDelayed->Branch("nDelayedPositron", &nDelayedPositron );
-  fOutTreeContDelayed->Branch("nDelayedElectronNeutrino", &nDelayedElectronNeutrino );
-  fOutTreeContDelayed->Branch("nDelayedAntiElectronNeutrino", &nDelayedAntiElectronNeutrino );
-  fOutTreeContDelayed->Branch("nDelayedGamma", &nDelayedGamma );
-  fOutTreeContDelayed->Branch("nDelayedNeutron", &nDelayedNeutron );
-  fOutTreeContDelayed->Branch("nDelayedAntiNeutron", &nDelayedAntiNeutron );
-  fOutTreeContDelayed->Branch("nDelayedMuonPlus", &nDelayedMuonPlus );
-  fOutTreeContDelayed->Branch("nDelayedMuonMinus", &nDelayedMuonMinus );
-  fOutTreeContDelayed->Branch("nDelayedKaonlong", &nDelayedKaonlong );
-  fOutTreeContDelayed->Branch("nDelayedPionPlus", &nDelayedPionPlus );
-  fOutTreeContDelayed->Branch("nDelayedPionMinus", &nDelayedPionMinus );
-  fOutTreeContDelayed->Branch("nDelayedKaonPlus", &nDelayedKaonPlus );
-  fOutTreeContDelayed->Branch("nDelayedKaonMinus", &nDelayedKaonMinus );
-  fOutTreeContDelayed->Branch("nDelayedKaonshort", &nDelayedKaonshort );
-  fOutTreeContDelayed->Branch("nDelayedPion0", &nDelayedPion0 );
-  fOutTreeContDelayed->Branch("nDelayedKaon0", &nDelayedKaon0 );
-  fOutTreeContDelayed->Branch("nDelayedMuonNeutrino", &nDelayedMuonNeutrino );
-  fOutTreeContDelayed->Branch("nDelayedAntiMuonNeutrino", &nDelayedAntiMuonNeutrino );
-  fOutTreeContDelayed->Branch("nDelayedTauPlus", &nDelayedTauPlus );
-  fOutTreeContDelayed->Branch("nDelayedTauMinus", &nDelayedTauMinus );
-
-
-  fOutTreeContDelayed->Branch("nDelayedLambda", &nDelayedLambda);
-  fOutTreeContDelayed->Branch("nDelayedAntiLambda", &nDelayedAntiLambda);
-  fOutTreeContDelayed->Branch("nDelayedSigmaMinus", &nDelayedSigmaMinus);
-  fOutTreeContDelayed->Branch("nDelayedSigmaPlus", &nDelayedSigmaPlus);
-  fOutTreeContDelayed->Branch("nDelayedSigma0", &nDelayedSigma0);
-  fOutTreeContDelayed->Branch("nDelayedAntiKaon0", &nDelayedAntiKaon0);
-  fOutTreeContDelayed->Branch("nDelayedAntiSigmaMinus", &nDelayedAntiSigmaMinus);
-  fOutTreeContDelayed->Branch("nDelayedAntiSigma0", &nDelayedAntiSigma0);
-  fOutTreeContDelayed->Branch("nDelayedAntiSigmaPlus", &nDelayedAntiSigmaPlus);
-  fOutTreeContDelayed->Branch("nDelayedXsi0", &nDelayedXsi0);
-  fOutTreeContDelayed->Branch("nDelayedAntiXsi0", &nDelayedAntiXsi0);
-  fOutTreeContDelayed->Branch("nDelayedXsiMinus", &nDelayedXsiMinus);
-  fOutTreeContDelayed->Branch("nDelayedXsiPlus", &nDelayedXsiPlus);
-  fOutTreeContDelayed->Branch("nDelayedOmegaMinus", &nDelayedOmegaMinus);
-  fOutTreeContDelayed->Branch("nDelayedOmegaPlus", &nDelayedOmegaPlus);
-  fOutTreeContDelayed->Branch("nDelayedOpticalPhoton", &nDelayedOpticalPhoton);
-  fOutTreeContDelayed->Branch("nDelayedAlpha", &nDelayedAlpha);
-  fOutTreeContDelayed->Branch("nDelayedDeuteron", &nDelayedDeuteron);
-  fOutTreeContDelayed->Branch("nDelayedTriton", &nDelayedTriton);
-  fOutTreeContDelayed->Branch("nDelayedLi7", &nDelayedLi7);
-  fOutTreeContDelayed->Branch("nDelayedC10", &nDelayedC10);
-  fOutTreeContDelayed->Branch("nDelayedB11", &nDelayedB11);
-  fOutTreeContDelayed->Branch("nDelayedC12", &nDelayedC12);
-  fOutTreeContDelayed->Branch("nDelayedC13", &nDelayedC13);
-  fOutTreeContDelayed->Branch("nDelayedN13", &nDelayedN13);
-  fOutTreeContDelayed->Branch("nDelayedN14", &nDelayedN14);
-  fOutTreeContDelayed->Branch("nDelayedN15", &nDelayedN15);
-  fOutTreeContDelayed->Branch("nDelayedN16", &nDelayedN16);
-  fOutTreeContDelayed->Branch("nDelayedO16", &nDelayedO16);
-  fOutTreeContDelayed->Branch("nDelayedAl27", &nDelayedAl27);
-  fOutTreeContDelayed->Branch("nDelayedFe54", &nDelayedFe54);
-  fOutTreeContDelayed->Branch("nDelayedMn54", &nDelayedMn54);
-  fOutTreeContDelayed->Branch("nDelayedMn55", &nDelayedMn55);
-  fOutTreeContDelayed->Branch("nDelayedMn56", &nDelayedMn56);
-  fOutTreeContDelayed->Branch("nDelayedFe56", &nDelayedFe56);
-  fOutTreeContDelayed->Branch("nDelayedFe57", &nDelayedFe57);
-  fOutTreeContDelayed->Branch("nDelayedFe58", &nDelayedFe58);
-  fOutTreeContDelayed->Branch("nDelayedEu154", &nDelayedEu154);
-  fOutTreeContDelayed->Branch("nDelayedGd158", &nDelayedGd158);
-  fOutTreeContDelayed->Branch("nDelayedGd156", &nDelayedGd156);
-  fOutTreeContDelayed->Branch("nDelayedGd157", &nDelayedGd157);
-  fOutTreeContDelayed->Branch("nDelayedGd155", &nDelayedGd155);
 
   
   gROOT->cd();

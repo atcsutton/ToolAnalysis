@@ -66,8 +66,9 @@ private:
   std::map<double, double> *fClusterNeutronCharge     = nullptr;
 
   //Experiment
-
-
+  std::map<int, int> ParticleCountsDelayed;
+  std::map<int, int> ParticleCountsPrompt;
+  
   // Output ROOT file things
   TFile *fOutFile;
   TTree *fOutTree;
@@ -187,143 +188,6 @@ private:
   int nSumingAllTrueNeutron = 0;
   int nSumingTotalTrueNeutron = 0;
   
-  
-  int nPromptProton = 0;
-  int nPromptAntiProton = 0;
-  int nPromptElectron = 0;
-  int nPromptPositron = 0;
-  int nPromptElectronNeutrino = 0;
-  int nPromptAntiElectronNeutrino = 0;
-  int nPromptGamma = 0;
-  int nPromptNeutron = 0;
-  int nPromptAntiNeutron = 0;
-  int nPromptMuonPlus = 0;
-  int nPromptMuonMinus = 0;
-  int nPromptKaonlong = 0;
-  int nPromptPionPlus = 0;
-  int nPromptPionMinus = 0;
-  int nPromptKaonPlus = 0;
-  int nPromptKaonMinus = 0;
-  int nPromptKaonshort = 0;
-  int nPromptPion0 = 0;
-  int nPromptKaon0 = 0;
-  int nPromptMuonNeutrino = 0;
-  int nPromptAntiMuonNeutrino = 0;
-  int nPromptTauPlus = 0;
-  int nPromptTauMinus = 0;
-
-
-  int nPromptLambda = 0;
-  int nPromptAntiLambda = 0;
-  int nPromptSigmaMinus = 0;
-  int nPromptSigmaPlus = 0;
-  int nPromptSigma0 = 0;
-  int nPromptAntiKaon0 = 0;
-  int nPromptAntiSigmaMinus = 0;
-  int nPromptAntiSigma0 = 0;
-  int nPromptAntiSigmaPlus = 0;
-  int nPromptXsi0 = 0;
-  int nPromptAntiXsi0 = 0;
-  int nPromptXsiMinus = 0;
-  int nPromptXsiPlus = 0;
-  int nPromptOmegaMinus = 0;
-  int nPromptOmegaPlus = 0;
-  int nPromptOpticalPhoton = 0;
-  int nPromptAlpha = 0;
-  int nPromptDeuteron = 0;
-  int nPromptTriton = 0;
-  int nPromptLi7 = 0;
-  int nPromptC10 = 0;
-  int nPromptB11 = 0;
-  int nPromptC12 = 0;
-  int nPromptC13 = 0;
-  int nPromptN13 = 0;
-  int nPromptN14 = 0;
-  int nPromptN15 = 0;
-  int nPromptN16 = 0;
-  int nPromptO16 = 0;
-  int nPromptAl27 = 0;
-  int nPromptFe54 = 0;
-  int nPromptMn54 = 0;
-  int nPromptMn55 = 0;
-  int nPromptMn56 = 0;
-  int nPromptFe56 = 0;
-  int nPromptFe57 = 0;
-  int nPromptFe58 = 0;
-  int nPromptEu154 = 0;
-  int nPromptGd158 = 0;
-  int nPromptGd156 = 0;
-  int nPromptGd157 = 0;
-  int nPromptGd155 = 0;
-
-  
-  int nDelayedProton = 0;
-  int nDelayedAntiProton = 0;
-  int nDelayedElectron = 0;
-  int nDelayedPositron = 0;
-  int nDelayedElectronNeutrino = 0;
-  int nDelayedAntiElectronNeutrino = 0;
-  int nDelayedGamma = 0;
-  int nDelayedNeutron = 0;
-  int nDelayedAntiNeutron = 0;
-  int nDelayedMuonPlus = 0;
-  int nDelayedMuonMinus = 0;
-  int nDelayedKaonlong = 0;
-  int nDelayedPionPlus = 0;
-  int nDelayedPionMinus = 0;
-  int nDelayedKaonPlus = 0;
-  int nDelayedKaonMinus = 0;
-  int nDelayedKaonshort = 0;
-  int nDelayedPion0 = 0;
-  int nDelayedKaon0 = 0;
-  int nDelayedMuonNeutrino = 0;
-  int nDelayedAntiMuonNeutrino = 0;
-  int nDelayedTauPlus = 0;
-  int nDelayedTauMinus = 0;
-
-
-  int nDelayedLambda = 0;
-  int nDelayedAntiLambda = 0;
-  int nDelayedSigmaMinus = 0;
-  int nDelayedSigmaPlus = 0;
-  int nDelayedSigma0 = 0;
-  int nDelayedAntiKaon0 = 0;
-  int nDelayedAntiSigmaMinus = 0;
-  int nDelayedAntiSigma0 = 0;
-  int nDelayedAntiSigmaPlus = 0;
-  int nDelayedXsi0 = 0;
-  int nDelayedAntiXsi0 = 0;
-  int nDelayedXsiMinus = 0;
-  int nDelayedXsiPlus = 0;
-  int nDelayedOmegaMinus = 0;
-  int nDelayedOmegaPlus = 0;
-  int nDelayedOpticalPhoton = 0;
-  int nDelayedAlpha = 0;
-  int nDelayedDeuteron = 0;
-  int nDelayedTriton = 0;
-  int nDelayedLi7 = 0;
-  int nDelayedC10 = 0;
-  int nDelayedB11 = 0;
-  int nDelayedC12 = 0;
-  int nDelayedC13 = 0;
-  int nDelayedN13 = 0;
-  int nDelayedN14 = 0;
-  int nDelayedN15 = 0;
-  int nDelayedN16 = 0;
-  int nDelayedO16 = 0;
-  int nDelayedAl27 = 0;
-  int nDelayedFe54 = 0;
-  int nDelayedMn54 = 0;
-  int nDelayedMn55 = 0;
-  int nDelayedMn56 = 0;
-  int nDelayedFe56 = 0;
-  int nDelayedFe57 = 0;
-  int nDelayedFe58 = 0;
-  int nDelayedEu154 = 0;
-  int nDelayedGd158 = 0;
-  int nDelayedGd156 = 0;
-  int nDelayedGd157 = 0;
-  int nDelayedGd155 = 0;
   
   double fClusterChargeBalance;
   std::map<double, double> ClusterChargeBalances;
