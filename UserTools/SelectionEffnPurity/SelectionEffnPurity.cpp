@@ -35,6 +35,7 @@ bool SelectionEffnPurity::Initialise(std::string configfile, DataModel &data){
     return false;
   }
 
+  m_data->CStore.Get("ChannelNumToTankPMTSPEChargeMap", map_chankey2spe);
 
   InitHist(6000.);
   return true;
@@ -72,8 +73,6 @@ bool SelectionEffnPurity::Execute(){
     IsInTank = fGeo->GetTankContained(Positionvtx);
     double clttime = MCkey.GetStopTime();
     
-    //    std::cout << "Vertex X:-" << fTrueVtxX << "; Vertex Y:-" << fTrueVtxY << "; Vertex Z:-" << fTrueVtxZ << std::endl;
-    
     if (ParticlePDG==2112 && ParentPdg ==0){
       nTotalTrueNeutronsWorld++;
       
@@ -81,15 +80,12 @@ bool SelectionEffnPurity::Execute(){
 	nTotalTrueNeutrons++;
 	
 	if (clttime <= 2000.0){
-	  //	  h_nTotalTrueNeutronsPromptNhits->Fill(MCNhits);
 	  h_nTotalTrueNeutronsPromptPDG->Fill(ParticlePDG);
 	  h_nTotalTrueNeutronsPromptCT->Fill(clttime);
 	  h_nTotalTrueNeutronsPromptTVtxXY->Fill(fTrueVtxX, fTrueVtxY);
 	  h_nTotalTrueNeutronsPromptTVtxYZ->Fill(fTrueVtxY, fTrueVtxZ);
 	  h_nTotalTrueNeutronsPromptTVtxXZ->Fill(fTrueVtxX, fTrueVtxZ);
 	  h_nTotalTrueNeutronsPromptNE ->Fill(NeutrinoEnergy);
-	  //	  h_nTotalTrueNeutronsPromptCC->Fill(fTotalQ);
-	  //	  std::cout << "Total True Neutron PROMPT" << std::endl;
 
 	  //combination of both Delayed and Prompt                                                                                                                                                           
           h_nTotalTrueNeutronsTVtxXZ->Fill(fTrueVtxX, fTrueVtxZ);
@@ -97,7 +93,6 @@ bool SelectionEffnPurity::Execute(){
 	  nSumingTotalTrueNeutron++;
 	}
 	else if (clttime > 2000.0){
-	  // h_nTotalTrueNeutronsDelayedNhits->Fill(MCNhits);
 	  h_nTotalTrueNeutronsDelayedPDG->Fill(ParticlePDG);
 	  h_nTotalTrueNeutronsDelayedCT->Fill(clttime);
 	  h_nTotalTrueNeutronsDelayedTVtxXY->Fill(fTrueVtxX, fTrueVtxY);
@@ -107,43 +102,65 @@ bool SelectionEffnPurity::Execute(){
 
 	  //combination of both Delayed and Prompt
 	  h_nTotalTrueNeutronsTVtxXZ->Fill(fTrueVtxX, fTrueVtxZ);
-	  // std::cout << "Total True Neutron DELAYED" << std::endl;
 	  nTotalTrueNeutronsDelayed++;
 	  nSumingTotalTrueNeutron++;
 	}
       }
     }
   }
+
   
+  std::vector<int> recordedIdxs;
   double hits = 0;
+  //  double totalChargePE = 0;
+  
   for (auto& clusterKey : *fClusterMap){
     double clusterTime = clusterKey.first;
     int bestPrtID = fClusterToBestParticleID->at(clusterTime);
+
     int bestPrtIdx = fMCParticleIndexMap->at(bestPrtID);
+    if (std::find(recordedIdxs.begin(), recordedIdxs.end(), bestPrtIdx) != recordedIdxs.end()) {
+      // we've already recorded this true neutron
+      continue;
+    } else {
+      recordedIdxs.push_back(bestPrtIdx);
+    }
+    
     fTotalQ = fClusterTotalCharge->at(clusterTime);
     fBestPDG = fClusterToBestParticlePDG->at(clusterTime);
     MCParticle bestPrt = fMCParticles->at(bestPrtIdx);
     Position pos = bestPrt.GetStopVertex();
+    double trueTime = bestPrt.GetStopTime();
     IsInTankMC = fGeo->GetTankContained(pos);
     fMCX = pos.X();
     fMCY = pos.Y();
     fMCZ = pos.Z();
     fClusterChargeBalance = ClusterChargeBalances.at(clusterTime);
-    
-    const std::vector<MCHit>& hits = clusterKey.second;
-    size_t Nhits = hits.size();
 
-    //    std::map<int, int> ParticleCountsDelayed;
-    //    std::map<int, int> ParticleCountsPrompt;
+
+    double totalChargePE = 0;
+    for (auto& hit : clusterKey.second) {
+      int tubeId = hit.GetTubeId();
+      if (map_chankey2spe.count(tubeId)) {
+	totalChargePE += hit.GetCharge() / map_chankey2spe.at(tubeId);
+      } else {
+        std::cerr << "Warning: tubeId " << tubeId << " not found in map_chankey2spe!" << std::endl;
+        continue;  // Skip this hit and move to the next one
+      }
+    }
     
+    //    std::cout << "Total Charge: " << totalChargePE << std::endl;
+              
     //looping over all the particles from ClusterMap
     if (IsInTankMC){
       if (fBestPDG != 0){
 	nAllSelectedClustersWorld++;
 	
-	if (clusterTime <= 2000.0){ //Prompt window && neutron selection cuts
-	  if (fClusterChargeBalance < 0.4 && fTotalQ < 120 && fClusterChargeBalance < 0.5 - fTotalQ / 300){
-	    h_nAllSelectedClustersPromptNhits->Fill(Nhits);
+	if (trueTime <= 2000.0){ //Prompt window && neutron selection cuts
+	  if (fClusterChargeBalance < 0.4 &&  totalChargePE < 120 && fClusterChargeBalance < 0.5 -  totalChargePE / 300){
+	    //	    std::cout << "&&&&&&&&&&&&&&&&& AFTER CUT Total cluster charge &&&&&&&&&&&&&&&&&&:-" << totalChargePE << std::endl;
+	    //	    std::cout << "%%%%%%%%%%%%%%%%%%%%%%% AFTER CUT TOTAL Q" << fTotalQ << std::endl; 
+	    //	    h_nAllSelectedClustersPromptNhits->Fill(Nhits);
 	    h_nAllSelectedClustersPromptPDG->Fill(fBestPDG);
 	    h_nAllSelectedClustersPromptCT->Fill(clusterTime);
 	    h_nAllSelectedClustersPromptTVtxXY->Fill(fMCX, fMCY);
@@ -153,14 +170,13 @@ bool SelectionEffnPurity::Execute(){
 	    nAllSelectedClustersPrompt++; 
 	    
 	    if (fBestPDG == 2112){
-	      h_nSelectedTrueNeutronsPromptNhits->Fill(Nhits);
+	      //	      h_nSelectedTrueNeutronsPromptNhits->Fill(Nhits);
 	      h_nSelectedTrueNeutronsPromptPDG->Fill(fBestPDG);
 	      h_nSelectedTrueNeutronsPromptCT->Fill(clusterTime);
 	      h_nSelectedTrueNeutronsPromptTVtxXY->Fill(fMCX, fMCY);
 	      h_nSelectedTrueNeutronsPromptTVtxYZ->Fill(fMCY, fMCZ);
 	      h_nSelectedTrueNeutronsPromptTVtxXZ->Fill(fMCX, fMCZ);
 	      h_nSelectedTrueNeutronsPromptNE->Fill(NeutrinoEnergy);
-	      //  std::cout<< "Selected true neutron PROMPT" << std::endl;
 
 	      //Combination of both delayed and prompt
 	      h_nSelectedTrueNeutronsTVtxXZ->Fill(fMCX, fMCZ);
@@ -171,10 +187,10 @@ bool SelectionEffnPurity::Execute(){
 	    ParticleCountsPrompt[fBestPDG]++;
 	  }	
 	}
-	else if (clusterTime > 2000.0){
+	else if (trueTime > 2000.0){
 	  //Delayed Window
-	  if (fClusterChargeBalance < 0.4 && fTotalQ < 120 && fClusterChargeBalance < 0.5 - fTotalQ / 300){
-	    h_nAllSelectedClustersDelayedNhits->Fill(Nhits);
+	  if (fClusterChargeBalance < 0.4 &&  totalChargePE < 120 && fClusterChargeBalance < 0.5 -  totalChargePE / 300){
+	    //	    h_nAllSelectedClustersDelayedNhits->Fill(Nhits);
 	    h_nAllSelectedClustersDelayedPDG->Fill(fBestPDG);
 	    h_nAllSelectedClustersDelayedCT->Fill(clusterTime);
 	    h_nAllSelectedClustersDelayedTVtxXY->Fill(fMCX, fMCY);
@@ -184,14 +200,13 @@ bool SelectionEffnPurity::Execute(){
 	    nAllSelectedClustersDelayed++;
 	    
 	    if (fBestPDG == 2112){
-	      h_nSelectedTrueNeutronsDelayedNhits->Fill(Nhits);
+	      //	      h_nSelectedTrueNeutronsDelayedNhits->Fill(Nhits);
 	      h_nSelectedTrueNeutronsDelayedPDG->Fill(fBestPDG);
 	      h_nSelectedTrueNeutronsDelayedCT->Fill(clusterTime);
 	      h_nSelectedTrueNeutronsDelayedTVtxXY->Fill(fMCX, fMCY);
 	      h_nSelectedTrueNeutronsDelayedTVtxYZ->Fill(fMCY, fMCZ);
 	      h_nSelectedTrueNeutronsDelayedTVtxXZ->Fill(fMCX, fMCZ);
 	      h_nSelectedTrueNeutronsDelayedNE->Fill(NeutrinoEnergy);
-	      // std::cout << "Selected true neutrons DELAYED" << std::endl;
 	      
 	      //Combination of both delayed and prompt                                                                                                                                                       
 	      h_nSelectedTrueNeutronsTVtxXZ->Fill(fMCX, fMCZ);
@@ -204,6 +219,7 @@ bool SelectionEffnPurity::Execute(){
 	}  
       }
     }
+
   }
 
   return true;
@@ -236,7 +252,8 @@ bool SelectionEffnPurity::Finalise(){
   std::ofstream Prompt("ParticleCountsPrompt.csv", std::ios::trunc);
   Prompt << "PDG,Count\n";
   for (const auto& promptentry : ParticleCountsPrompt) {
-    Prompt << promptentry.first << "," << promptentry.second << "\n"; // Write particle PDG and count to CSV                                                                                                                                                                                                                                                                                                            
+    Prompt << promptentry.first << "," << promptentry.second << "\n"; // Write particle PDG and count to CSV
+
   }
   Prompt.close();
 

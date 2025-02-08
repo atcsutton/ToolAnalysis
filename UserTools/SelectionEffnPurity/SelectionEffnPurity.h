@@ -52,7 +52,7 @@ private:
   std::string fVertexMapName;  // The name of the vertex map in the ANNIEEvent
 
   // Pointers to load from the ANNIE Event
-  std::map<double, std::vector<MCHit>> *fClusterMap         = nullptr; // The clusters
+  std::map<double, std::vector<Hit>> *fClusterMap         = nullptr; // The clusters
   std::map<double, Position>           *fVertexMap          = nullptr; // The vertices
   std::vector<MCParticle>              *fMCParticles        = nullptr; // The true particles from the event
   std::map<int, int>                   *fMCParticleIndexMap = nullptr; // Map between the particle Id and it's position in MCParticles vector
@@ -68,6 +68,7 @@ private:
   //Experiment
   std::map<int, int> ParticleCountsDelayed;
   std::map<int, int> ParticleCountsPrompt;
+  std::map<int, double> map_chankey2spe;
   
   // Output ROOT file things
   TFile *fOutFile;
