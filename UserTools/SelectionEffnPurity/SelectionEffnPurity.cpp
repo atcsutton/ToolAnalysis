@@ -129,6 +129,7 @@ bool SelectionEffnPurity::Execute(){
     fTotalQ = fClusterTotalCharge->at(clusterTime);
     fBestPDG = fClusterToBestParticlePDG->at(clusterTime);
     MCParticle bestPrt = fMCParticles->at(bestPrtIdx);
+    int ParentpdgCmap = bestPrt.GetParentPdg();
     Position pos = bestPrt.GetStopVertex();
     double trueTime = bestPrt.GetStopTime();
     IsInTankMC = fGeo->GetTankContained(pos);
@@ -136,7 +137,6 @@ bool SelectionEffnPurity::Execute(){
     fMCY = pos.Y();
     fMCZ = pos.Z();
     fClusterChargeBalance = ClusterChargeBalances.at(clusterTime);
-
 
     double totalChargePE = 0;
     for (auto& hit : clusterKey.second) {
@@ -149,8 +149,6 @@ bool SelectionEffnPurity::Execute(){
       }
     }
     
-    //    std::cout << "Total Charge: " << totalChargePE << std::endl;
-              
     //looping over all the particles from ClusterMap
     if (IsInTankMC){
       if (fBestPDG != 0){
@@ -158,9 +156,6 @@ bool SelectionEffnPurity::Execute(){
 	
 	if (trueTime <= 2000.0){ //Prompt window && neutron selection cuts
 	  if (fClusterChargeBalance < 0.4 &&  totalChargePE < 120 && fClusterChargeBalance < 0.5 -  totalChargePE / 300){
-	    //	    std::cout << "&&&&&&&&&&&&&&&&& AFTER CUT Total cluster charge &&&&&&&&&&&&&&&&&&:-" << totalChargePE << std::endl;
-	    //	    std::cout << "%%%%%%%%%%%%%%%%%%%%%%% AFTER CUT TOTAL Q" << fTotalQ << std::endl; 
-	    //	    h_nAllSelectedClustersPromptNhits->Fill(Nhits);
 	    h_nAllSelectedClustersPromptPDG->Fill(fBestPDG);
 	    h_nAllSelectedClustersPromptCT->Fill(clusterTime);
 	    h_nAllSelectedClustersPromptTVtxXY->Fill(fMCX, fMCY);
@@ -170,7 +165,6 @@ bool SelectionEffnPurity::Execute(){
 	    nAllSelectedClustersPrompt++; 
 	    
 	    if (fBestPDG == 2112){
-	      //	      h_nSelectedTrueNeutronsPromptNhits->Fill(Nhits);
 	      h_nSelectedTrueNeutronsPromptPDG->Fill(fBestPDG);
 	      h_nSelectedTrueNeutronsPromptCT->Fill(clusterTime);
 	      h_nSelectedTrueNeutronsPromptTVtxXY->Fill(fMCX, fMCY);
