@@ -1,6 +1,6 @@
 verbosity 100
 ClusterMapName NeutronClusters # Output name of cluster map in ANNIE Event
-UseMCHits 0 # Does the cluster map contain Hits or MCHits?
+UseMCHits 1 # Does the cluster map contain Hits or MCHits?
 MaxClusterCharge 120
 MaxClusterCB 0.4
 CBvQIntercept 0.5
