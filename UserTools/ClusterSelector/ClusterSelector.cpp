@@ -73,6 +73,15 @@ bool ClusterSelector::Initialise(std::string configfile, DataModel &data)
 //------------------------------------------------------------------------------
 bool ClusterSelector::Execute()
 {
+
+  bool skip = false;
+  bool goodSkipStatus = m_data->Stores.at("ANNIEEvent")->Get("SkipExecute", skip);
+  if (goodSkipStatus && skip) {
+    logmessage = "ClusterSelector: An upstream tool told me to skip this event.";
+    Log(logmessage, v_warning, verbosity);
+    return true;
+  }
+  
   // Grab cluster classifier outputs from the ANNIE Event
   std::map<double, double> clusterCBMap;
   bool gotClusterChargeBalance = m_data->Stores.at("ANNIEEvent")->Get("ClusterChargeBalances", clusterCBMap);

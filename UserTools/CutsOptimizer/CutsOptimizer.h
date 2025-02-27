@@ -43,14 +43,14 @@ class CutsOptimizer: public Tool {
   void SetupHist();
   void InitHist(double max);
   void WriteHist();
-  bool LoadTankClusterClassifiers(double cluster_time);
+  //  bool LoadTankClusterClassifiers(double cluster_time);
  private:
 
   std::string fClusterMapName; // The name of the cluster map in the ANNIEEvent
   std::string fVertexMapName;  // The name of the vertex map in the ANNIEEvent
 
   // Pointers to load from the ANNIE Event
-  std::map<double, std::vector<MCHit>> *fClusterMap         = nullptr; // The clusters
+  std::map<double, std::vector<Hit>> *fClusterMap         = nullptr; // The clusters
   std::map<double, Position>           *fVertexMap          = nullptr; // The vertices
   std::vector<MCParticle>              *fMCParticles        = nullptr; // The true particles from the event
   std::map<int, int>                   *fMCParticleIndexMap = nullptr; // Map between the particle Id and it's position in MCParticles vector
@@ -63,6 +63,8 @@ class CutsOptimizer: public Tool {
   std::map<double, double> *fClusterTotalCharge       = nullptr;
   std::map<double, double> *fClusterNeutronCharge     = nullptr;
 
+  std::map<int, double> map_chankey2spe;
+  
   TFile *fOutFile;
   TTree *fOutTree, *fOutMCParticles;
   double fTrueVtxX, fTrueVtxY, fTrueVtxZ;
@@ -92,7 +94,8 @@ class CutsOptimizer: public Tool {
   double cbCut = 0;
 
   double fClusterChargeBalance;
-  std::map<double, double> cluster_CB;
+  std::map<double, double> ClusterChargeBalances;
+  //  std::map<double, double> cluster_CB;
 };
 
 

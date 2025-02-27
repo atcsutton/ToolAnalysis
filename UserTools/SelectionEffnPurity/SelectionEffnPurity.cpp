@@ -157,7 +157,7 @@ bool SelectionEffnPurity::Execute(){
 	if (trueTime <= 2000.0){ //Prompt window && neutron selection cuts
 	  //	  if (fClusterChargeBalance < 0.4 &&  totalChargePE < 120 && fClusterChargeBalance < 0.5 -  totalChargePE / 300){
 	  h_nAllSelectedClustersPromptPDG->Fill(fBestPDG);
-	  h_nAllSelectedClustersPromptCT->Fill(clusterTime);
+	  h_nAllSelectedClustersPromptCT->Fill(trueTime);
 	  h_nAllSelectedClustersPromptTVtxXY->Fill(fMCX, fMCY);
 	  h_nAllSelectedClustersPromptTVtxYZ->Fill(fMCY, fMCZ);
 	  h_nAllSelectedClustersPromptTVtxXZ->Fill(fMCX, fMCZ);
@@ -166,7 +166,7 @@ bool SelectionEffnPurity::Execute(){
 	  
 	  if (fBestPDG == 2112){
 	    h_nSelectedTrueNeutronsPromptPDG->Fill(fBestPDG);
-	    h_nSelectedTrueNeutronsPromptCT->Fill(clusterTime);
+	    h_nSelectedTrueNeutronsPromptCT->Fill(trueTime);
 	    h_nSelectedTrueNeutronsPromptTVtxXY->Fill(fMCX, fMCY);
 	    h_nSelectedTrueNeutronsPromptTVtxYZ->Fill(fMCY, fMCZ);
 	    h_nSelectedTrueNeutronsPromptTVtxXZ->Fill(fMCX, fMCZ);
@@ -186,7 +186,7 @@ bool SelectionEffnPurity::Execute(){
 	  // if (fClusterChargeBalance < 0.4 &&  totalChargePE < 120 && fClusterChargeBalance < 0.5 -  totalChargePE / 300){
 	  //	    h_nAllSelectedClustersDelayedNhits->Fill(Nhits);
 	  h_nAllSelectedClustersDelayedPDG->Fill(fBestPDG);
-	  h_nAllSelectedClustersDelayedCT->Fill(clusterTime);
+	  h_nAllSelectedClustersDelayedCT->Fill(trueTime);
 	  h_nAllSelectedClustersDelayedTVtxXY->Fill(fMCX, fMCY);
 	  h_nAllSelectedClustersDelayedTVtxYZ->Fill(fMCY, fMCZ);
 	  h_nAllSelectedClustersDelayedTVtxXZ->Fill(fMCX, fMCZ);
@@ -196,7 +196,7 @@ bool SelectionEffnPurity::Execute(){
 	  if (fBestPDG == 2112){
 	    //	      h_nSelectedTrueNeutronsDelayedNhits->Fill(Nhits);
 	    h_nSelectedTrueNeutronsDelayedPDG->Fill(fBestPDG);
-	    h_nSelectedTrueNeutronsDelayedCT->Fill(clusterTime);
+	    h_nSelectedTrueNeutronsDelayedCT->Fill(trueTime);
 	    h_nSelectedTrueNeutronsDelayedTVtxXY->Fill(fMCX, fMCY);
 	    h_nSelectedTrueNeutronsDelayedTVtxYZ->Fill(fMCY, fMCZ);
 	    h_nSelectedTrueNeutronsDelayedTVtxXZ->Fill(fMCX, fMCZ);
@@ -291,26 +291,26 @@ void SelectionEffnPurity::InitHist(double max)
   h_nAllSelectedClustersDelayedNE = new TH1F("h_nAllSelectedClustersDelayedNE", "h_nAllSelectedClustersDelayedNE", 12, 0, max);
   h_nSelectedTrueNeutronsDelayedNE = new TH1F("h_nSelectedTrueNeutronsDelayedNE", "h_nSelectedTrueNeutronsDelayedNE", 12, 0, max);
 
-  h_nTotalTrueNeutronsPromptTVtxXZ = new TH2F("h_nTotalTrueNeutronsPromptTVtxXZ", "h_nTotalTrueNeutronsPromptTVtxXZ", 40, -5, 5, 40, -5, 5);
-  h_nTotalTrueNeutronsDelayedTVtxXZ = new TH2F("h_nTotalTrueNeutronsDelayedTVtxXZ", "h_nTotalTrueNeutronsDelayedTVtxXZ", 40, -5, 5, 40, -5, 5);
-  h_nAllSelectedClustersPromptTVtxXZ = new TH2F("h_nAllSelectedClustersPromptTVtxXZ", "h_nAllSelectedClustersPromptTVtxXZ", 40, -5, 5, 40, -5, 5);
-  h_nSelectedTrueNeutronsPromptTVtxXZ = new TH2F("h_nSelectedTrueNeutronsPromptTVtxXZ", "h_nSelectedTrueNeutronsPromptTVtxXZ", 40, -5, 5, 40, -5, 5);
-  h_nAllSelectedClustersDelayedTVtxXZ = new TH2F("h_nAllSelectedClustersDelayedTVtxXZ", "h_nAllSelectedClustersDelayedTVtxXZ", 40, -5, 5, 40, -5, 5);
-  h_nSelectedTrueNeutronsDelayedTVtxXZ = new TH2F("h_nSelectedTrueNeutronsDelayedTVtxXZ", "h_nSelectedTrueNeutronsDelayedTVtxXZ", 40, -5, 5, 40, -5, 5);
+  h_nTotalTrueNeutronsPromptTVtxXZ = new TH2F("h_nTotalTrueNeutronsPromptTVtxXZ", "h_nTotalTrueNeutronsPromptTVtxXZ", 40, -2.5, 2.5, 40, -0.5, 3.5);
+  h_nTotalTrueNeutronsDelayedTVtxXZ = new TH2F("h_nTotalTrueNeutronsDelayedTVtxXZ", "h_nTotalTrueNeutronsDelayedTVtxXZ", 40, -2.5, 2.5, 40, -0.5, 3.5);
+  h_nAllSelectedClustersPromptTVtxXZ = new TH2F("h_nAllSelectedClustersPromptTVtxXZ", "h_nAllSelectedClustersPromptTVtxXZ", 40, -2.5, 2.5, 40, -0.5, 3.5);
+  h_nSelectedTrueNeutronsPromptTVtxXZ = new TH2F("h_nSelectedTrueNeutronsPromptTVtxXZ", "h_nSelectedTrueNeutronsPromptTVtxXZ", 40, -2.5, 2.5, 40, -0.5, 3.5);
+  h_nAllSelectedClustersDelayedTVtxXZ = new TH2F("h_nAllSelectedClustersDelayedTVtxXZ", "h_nAllSelectedClustersDelayedTVtxXZ", 40, -2.5, 2.5, 40, -0.5, 3.5);
+  h_nSelectedTrueNeutronsDelayedTVtxXZ = new TH2F("h_nSelectedTrueNeutronsDelayedTVtxXZ", "h_nSelectedTrueNeutronsDelayedTVtxXZ", 40, -2.5, 2.5, 40, -0.5, 3.5);
 
-  h_nTotalTrueNeutronsPromptTVtxXY = new TH2F("h_nTotalTrueNeutronsPromptTVtxXY", "h_nTotalTrueNeutronsPromptTVtxXY", 40, -5, 5, 40, -5, 5);
-  h_nTotalTrueNeutronsDelayedTVtxXY = new TH2F("h_nTotalTrueNeutronsDelayedTVtxXY", "h_nTotalTrueNeutronsDelayedTVtxXY", 40, -5, 5, 40, -5, 5);
-  h_nAllSelectedClustersPromptTVtxXY = new TH2F("h_nAllSelectedClustersPromptTVtxXY", "h_nAllSelectedClustersPromptTVtxXY", 40, -5, 5, 40, -5, 5);
-  h_nSelectedTrueNeutronsPromptTVtxXY = new TH2F("h_nSelectedTrueNeutronsPromptTVtxXY", "h_nSelectedTrueNeutronsPromptTVtxXY", 40, -5, 5, 40, -5, 5);
-  h_nAllSelectedClustersDelayedTVtxXY = new TH2F("h_nAllSelectedClustersDelayedTVtxXY", "h_nAllSelectedClustersDelayedTVtxXY", 40, -5, 5, 40, -5, 5);
-  h_nSelectedTrueNeutronsDelayedTVtxXY = new TH2F("h_nSelectedTrueNeutronsDelayedTVtxXY", "h_nSelectedTrueNeutronsDelayedTVtxXY", 40,-5, 5, 40, -5, 5);
+  h_nTotalTrueNeutronsPromptTVtxXY = new TH2F("h_nTotalTrueNeutronsPromptTVtxXY", "h_nTotalTrueNeutronsPromptTVtxXY", 40, -2.5, 2.5, 40, -2.5, 2.5);
+  h_nTotalTrueNeutronsDelayedTVtxXY = new TH2F("h_nTotalTrueNeutronsDelayedTVtxXY", "h_nTotalTrueNeutronsDelayedTVtxXY", 40, -2.5, 2.5, 40, -2.5, 2.5);
+  h_nAllSelectedClustersPromptTVtxXY = new TH2F("h_nAllSelectedClustersPromptTVtxXY", "h_nAllSelectedClustersPromptTVtxXY", 40, -2.5, 2.5, 40, -2.5, 2.5);
+  h_nSelectedTrueNeutronsPromptTVtxXY = new TH2F("h_nSelectedTrueNeutronsPromptTVtxXY", "h_nSelectedTrueNeutronsPromptTVtxXY", 40, -2.5, 2.5, 40, -2.5, 2.5);
+  h_nAllSelectedClustersDelayedTVtxXY = new TH2F("h_nAllSelectedClustersDelayedTVtxXY", "h_nAllSelectedClustersDelayedTVtxXY", 40, -2.5, 2.5, 40, -2.5, 2.5);
+  h_nSelectedTrueNeutronsDelayedTVtxXY = new TH2F("h_nSelectedTrueNeutronsDelayedTVtxXY", "h_nSelectedTrueNeutronsDelayedTVtxXY", 40, -2.5, 2.5, 40, -2.5, 2.5);
 
-  h_nTotalTrueNeutronsPromptTVtxYZ = new TH2F("h_nTotalTrueNeutronsPromptTVtxYZ", "h_nTotalTrueNeutronsPromptTVtxYZ", 40, -5, 5, 40, -5, 5);
-  h_nTotalTrueNeutronsDelayedTVtxYZ = new TH2F("h_nTotalTrueNeutronsDelayedTVtxYZ", "h_nTotalTrueNeutronsDelayedTVtxYZ", 40, -5, 5, 40, -5, 5);
-  h_nAllSelectedClustersPromptTVtxYZ = new TH2F("h_nAllSelectedClustersPromptTVtxYZ", "h_nAllSelectedClustersPromptTVtxYZ", 40, -5, 5, 40, -5, 5);
-  h_nSelectedTrueNeutronsPromptTVtxYZ = new TH2F("h_nSelectedTrueNeutronsPromptTVtxYZ", "h_nSelectedTrueNeutronsPromptTVtxYZ", 40, -5, 5, 40, -5, 5);
-  h_nAllSelectedClustersDelayedTVtxYZ = new TH2F("h_nAllSelectedClustersDelayedTVtxYZ", "h_nAllSelectedClustersDelayedTVtxYZ", 40, -5, 5, 40, -5, 5);
-  h_nSelectedTrueNeutronsDelayedTVtxYZ = new TH2F("h_nSelectedTrueNeutronsDelayedTVtxYZ", "h_nSelectedTrueNeutronsDelayedTVtxYZ", 40, -5, 5, 40, -5, 5);
+  h_nTotalTrueNeutronsPromptTVtxYZ = new TH2F("h_nTotalTrueNeutronsPromptTVtxYZ", "h_nTotalTrueNeutronsPromptTVtxYZ", 40, -2.5, 2.5, 40, -0.5, 3.5);
+  h_nTotalTrueNeutronsDelayedTVtxYZ = new TH2F("h_nTotalTrueNeutronsDelayedTVtxYZ", "h_nTotalTrueNeutronsDelayedTVtxYZ", 40, -2.5, 2.5, 40, -0.5, 3.5);
+  h_nAllSelectedClustersPromptTVtxYZ = new TH2F("h_nAllSelectedClustersPromptTVtxYZ", "h_nAllSelectedClustersPromptTVtxYZ", 40, -2.5, 2.5, 40, -0.5, 3.5);
+  h_nSelectedTrueNeutronsPromptTVtxYZ = new TH2F("h_nSelectedTrueNeutronsPromptTVtxYZ", "h_nSelectedTrueNeutronsPromptTVtxYZ", 40, -2.5, 2.5, 40, -0.5, 3.5);
+  h_nAllSelectedClustersDelayedTVtxYZ = new TH2F("h_nAllSelectedClustersDelayedTVtxYZ", "h_nAllSelectedClustersDelayedTVtxYZ", 40, -2.5, 2.5, 40, -0.5, 3.5);
+  h_nSelectedTrueNeutronsDelayedTVtxYZ = new TH2F("h_nSelectedTrueNeutronsDelayedTVtxYZ", "h_nSelectedTrueNeutronsDelayedTVtxYZ", 40, -2.5, 2.5, 40, -0.5, 3.5);
   
   h_nTotalTrueNeutronsPromptCT = new TH1F("h_nTotalTrueNeutronsPromptCT", "h_nTotalTrueNeutronsPromptCT", 100, 0, 71000);
   h_nTotalTrueNeutronsDelayedCT = new TH1F("h_nTotalTrueNeutronsDelayedCT", "h_nTotalTrueNeutronsDelayedCT", 100, 0, 71000);
