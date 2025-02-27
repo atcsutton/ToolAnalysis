@@ -155,67 +155,67 @@ bool SelectionEffnPurity::Execute(){
 	nAllSelectedClustersWorld++;
 	
 	if (trueTime <= 2000.0){ //Prompt window && neutron selection cuts
-	  if (fClusterChargeBalance < 0.4 &&  totalChargePE < 120 && fClusterChargeBalance < 0.5 -  totalChargePE / 300){
-	    h_nAllSelectedClustersPromptPDG->Fill(fBestPDG);
-	    h_nAllSelectedClustersPromptCT->Fill(clusterTime);
-	    h_nAllSelectedClustersPromptTVtxXY->Fill(fMCX, fMCY);
-	    h_nAllSelectedClustersPromptTVtxYZ->Fill(fMCY, fMCZ);
-	    h_nAllSelectedClustersPromptTVtxXZ->Fill(fMCX, fMCZ);
-	    h_nAllSelectedClustersPromptNE->Fill(NeutrinoEnergy);
-	    nAllSelectedClustersPrompt++; 
+	  //	  if (fClusterChargeBalance < 0.4 &&  totalChargePE < 120 && fClusterChargeBalance < 0.5 -  totalChargePE / 300){
+	  h_nAllSelectedClustersPromptPDG->Fill(fBestPDG);
+	  h_nAllSelectedClustersPromptCT->Fill(clusterTime);
+	  h_nAllSelectedClustersPromptTVtxXY->Fill(fMCX, fMCY);
+	  h_nAllSelectedClustersPromptTVtxYZ->Fill(fMCY, fMCZ);
+	  h_nAllSelectedClustersPromptTVtxXZ->Fill(fMCX, fMCZ);
+	  h_nAllSelectedClustersPromptNE->Fill(NeutrinoEnergy);
+	  nAllSelectedClustersPrompt++; 
+	  
+	  if (fBestPDG == 2112){
+	    h_nSelectedTrueNeutronsPromptPDG->Fill(fBestPDG);
+	    h_nSelectedTrueNeutronsPromptCT->Fill(clusterTime);
+	    h_nSelectedTrueNeutronsPromptTVtxXY->Fill(fMCX, fMCY);
+	    h_nSelectedTrueNeutronsPromptTVtxYZ->Fill(fMCY, fMCZ);
+	    h_nSelectedTrueNeutronsPromptTVtxXZ->Fill(fMCX, fMCZ);
+	    h_nSelectedTrueNeutronsPromptNE->Fill(NeutrinoEnergy);
 	    
-	    if (fBestPDG == 2112){
-	      h_nSelectedTrueNeutronsPromptPDG->Fill(fBestPDG);
-	      h_nSelectedTrueNeutronsPromptCT->Fill(clusterTime);
-	      h_nSelectedTrueNeutronsPromptTVtxXY->Fill(fMCX, fMCY);
-	      h_nSelectedTrueNeutronsPromptTVtxYZ->Fill(fMCY, fMCZ);
-	      h_nSelectedTrueNeutronsPromptTVtxXZ->Fill(fMCX, fMCZ);
-	      h_nSelectedTrueNeutronsPromptNE->Fill(NeutrinoEnergy);
-
-	      //Combination of both delayed and prompt
-	      h_nSelectedTrueNeutronsTVtxXZ->Fill(fMCX, fMCZ);
-	      nSelectedTrueNeutronsPrompt++;
-	      nSumingAllTrueNeutron++;
-	    }
+	    //Combination of both delayed and prompt
+	    h_nSelectedTrueNeutronsTVtxXZ->Fill(fMCX, fMCZ);
+	    nSelectedTrueNeutronsPrompt++;
+	    nSumingAllTrueNeutron++;
+	  }
+	  
+	  ParticleCountsPrompt[fBestPDG]++;
+	}	
 	
-	    ParticleCountsPrompt[fBestPDG]++;
-	  }	
-	}
 	else if (trueTime > 2000.0){
 	  //Delayed Window
-	  if (fClusterChargeBalance < 0.4 &&  totalChargePE < 120 && fClusterChargeBalance < 0.5 -  totalChargePE / 300){
-	    //	    h_nAllSelectedClustersDelayedNhits->Fill(Nhits);
-	    h_nAllSelectedClustersDelayedPDG->Fill(fBestPDG);
-	    h_nAllSelectedClustersDelayedCT->Fill(clusterTime);
-	    h_nAllSelectedClustersDelayedTVtxXY->Fill(fMCX, fMCY);
-	    h_nAllSelectedClustersDelayedTVtxYZ->Fill(fMCY, fMCZ);
-	    h_nAllSelectedClustersDelayedTVtxXZ->Fill(fMCX, fMCZ);
-	    h_nAllSelectedClustersDelayedNE->Fill(NeutrinoEnergy);
-	    nAllSelectedClustersDelayed++;
+	  // if (fClusterChargeBalance < 0.4 &&  totalChargePE < 120 && fClusterChargeBalance < 0.5 -  totalChargePE / 300){
+	  //	    h_nAllSelectedClustersDelayedNhits->Fill(Nhits);
+	  h_nAllSelectedClustersDelayedPDG->Fill(fBestPDG);
+	  h_nAllSelectedClustersDelayedCT->Fill(clusterTime);
+	  h_nAllSelectedClustersDelayedTVtxXY->Fill(fMCX, fMCY);
+	  h_nAllSelectedClustersDelayedTVtxYZ->Fill(fMCY, fMCZ);
+	  h_nAllSelectedClustersDelayedTVtxXZ->Fill(fMCX, fMCZ);
+	  h_nAllSelectedClustersDelayedNE->Fill(NeutrinoEnergy);
+	  nAllSelectedClustersDelayed++;
+	  
+	  if (fBestPDG == 2112){
+	    //	      h_nSelectedTrueNeutronsDelayedNhits->Fill(Nhits);
+	    h_nSelectedTrueNeutronsDelayedPDG->Fill(fBestPDG);
+	    h_nSelectedTrueNeutronsDelayedCT->Fill(clusterTime);
+	    h_nSelectedTrueNeutronsDelayedTVtxXY->Fill(fMCX, fMCY);
+	    h_nSelectedTrueNeutronsDelayedTVtxYZ->Fill(fMCY, fMCZ);
+	    h_nSelectedTrueNeutronsDelayedTVtxXZ->Fill(fMCX, fMCZ);
+	    h_nSelectedTrueNeutronsDelayedNE->Fill(NeutrinoEnergy);
 	    
-	    if (fBestPDG == 2112){
-	      //	      h_nSelectedTrueNeutronsDelayedNhits->Fill(Nhits);
-	      h_nSelectedTrueNeutronsDelayedPDG->Fill(fBestPDG);
-	      h_nSelectedTrueNeutronsDelayedCT->Fill(clusterTime);
-	      h_nSelectedTrueNeutronsDelayedTVtxXY->Fill(fMCX, fMCY);
-	      h_nSelectedTrueNeutronsDelayedTVtxYZ->Fill(fMCY, fMCZ);
-	      h_nSelectedTrueNeutronsDelayedTVtxXZ->Fill(fMCX, fMCZ);
-	      h_nSelectedTrueNeutronsDelayedNE->Fill(NeutrinoEnergy);
-	      
-	      //Combination of both delayed and prompt                                                                                                                                                       
-	      h_nSelectedTrueNeutronsTVtxXZ->Fill(fMCX, fMCZ);
-	      nSelectedTrueNeutronsDelayed++;
-	      nSumingAllTrueNeutron++;
-	    }
-	    
-	    ParticleCountsDelayed[fBestPDG]++;
+	    //Combination of both delayed and prompt                                                                                                                                                       
+	    h_nSelectedTrueNeutronsTVtxXZ->Fill(fMCX, fMCZ);
+	    nSelectedTrueNeutronsDelayed++;
+	    nSumingAllTrueNeutron++;
 	  }
-	}  
+	  
+	  ParticleCountsDelayed[fBestPDG]++;
+	}
+	
       }
     }
-
+    
   }
-
+  
   return true;
 }
 
