@@ -58,13 +58,12 @@ private:
   std::map<int, int>                   *fMCParticleIndexMap = nullptr; // Map between the particle Id and it's position in MCParticles vector
 
   // Backtracker results
-  std::map<double, int>    *fClusterToBestParticleID  = nullptr;
   std::map<double, int>    *fClusterToBestParticlePDG = nullptr; 
   std::map<double, double> *fClusterEfficiency        = nullptr;
   std::map<double, double> *fClusterPurity            = nullptr;
   std::map<double, double> *fClusterTotalCharge       = nullptr;
   std::map<double, double> *fClusterNeutronCharge     = nullptr;
-
+  std::map<double, int> *fClusterToBestParticleIdx = nullptr;
   //Experiment
   std::map<int, int> ParticleCountsDelayed;
   std::map<int, int> ParticleCountsPrompt;

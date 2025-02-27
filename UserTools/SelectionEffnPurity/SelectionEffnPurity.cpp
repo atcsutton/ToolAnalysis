@@ -116,9 +116,10 @@ bool SelectionEffnPurity::Execute(){
   
   for (auto& clusterKey : *fClusterMap){
     double clusterTime = clusterKey.first;
-    int bestPrtID = fClusterToBestParticleID->at(clusterTime);
+    //    int bestPrtID = fClusterToBestParticleID->at(clusterTime);
 
-    int bestPrtIdx = fMCParticleIndexMap->at(bestPrtID);
+    //    int bestPrtIdx = fMCParticleIndexMap->at(bestPrtID);
+    int bestPrtIdx = fClusterToBestParticleIdx->at(clusterTime);
     if (std::find(recordedIdxs.begin(), recordedIdxs.end(), bestPrtIdx) != recordedIdxs.end()) {
       // we've already recorded this true neutron
       continue;
@@ -471,13 +472,6 @@ bool SelectionEffnPurity::LoadFromStores()
   bool goodMCParticleIndexMap = m_data->Stores.at("ANNIEEvent")->Get("TrackId_to_MCParticleIndex", fMCParticleIndexMap);
   if (!goodMCParticleIndexMap) {
     logmessage = "1.4 SelectionEffnPurity:no TrackId_to_MCParticleIndex in the ANNIEEvent!";
-    Log(logmessage, v_error, verbosity);
-    return false;
-  }
-  
-  bool goodClusterToBestParticleID = m_data->Stores.at("ANNIEEvent")->Get("ClusterToBestParticleID", fClusterToBestParticleID);
-  if (!goodClusterToBestParticleID) {
-    logmessage = "1.5 SelectionEffnPurity:no ClusterToBestParticleID in the ANNIEEvent!";
     Log(logmessage, v_error, verbosity);
     return false;
   }
