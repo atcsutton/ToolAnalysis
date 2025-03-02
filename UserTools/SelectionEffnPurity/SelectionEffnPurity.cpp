@@ -20,18 +20,18 @@ bool SelectionEffnPurity::Initialise(std::string configfile, DataModel &data){
   bool gotVerbosity = m_variables.Get("verbosity", verbosity);
   if (!gotVerbosity){
     verbosity = 0;
-    Log("1. SelectionEffnPurity: \"verbosity\" not set in the config, defaulting to 0", v_error, verbosity);
+    Log("SelectionEffnPurity: \"verbosity\" not set in the config, defaulting to 0", v_error, verbosity);
   }
 
   bool gotClusterMapName = m_variables.Get("ClusterMapName", fClusterMapName);
   if (!gotClusterMapName) {
-    Log("2. SelectionEffnPurity: \"ClusterMapName\" not set in the config! Aborting!", v_error, verbosity);
+    Log("SelectionEffnPurity: \"ClusterMapName\" not set in the config! Aborting!", v_error, verbosity);
     return false;
   }
 
   bool gotGeometry = m_data->Stores.at("ANNIEEvent")->Header->Get("AnnieGeometry", fGeo);
   if(!gotGeometry){
-    Log("4. SelectionEffnPurity:Error retrieving Geometry from ANNIEEvent! Aborting!", v_error, verbosity);
+    Log("SelectionEffnPurity:Error retrieving Geometry from ANNIEEvent! Aborting!", v_error, verbosity);
     return false;
   }
 
@@ -129,6 +129,9 @@ bool SelectionEffnPurity::Execute(){
     
     fTotalQ = fClusterTotalCharge->at(clusterTime);
     fBestPDG = fClusterToBestParticlePDG->at(clusterTime);
+    double earliestTime = fClusterEarliestMCTime->at(clusterTime);
+    double meanTime = fClusterMeanMCTime->at(clusterTime);
+    double medianTime = fClusterMedianMCTime->at(clusterTime);
     MCParticle bestPrt = fMCParticles->at(bestPrtIdx);
     int ParentpdgCmap = bestPrt.GetParentPdg();
     Position pos = bestPrt.GetStopVertex();
@@ -155,10 +158,10 @@ bool SelectionEffnPurity::Execute(){
       if (fBestPDG != 0){
 	nAllSelectedClustersWorld++;
 	
-	if (trueTime <= 2000.0){ //Prompt window && neutron selection cuts
+	if (clusterTime <= 2000.0){ //Prompt window && neutron selection cuts
 	  //	  if (fClusterChargeBalance < 0.4 &&  totalChargePE < 120 && fClusterChargeBalance < 0.5 -  totalChargePE / 300){
 	  h_nAllSelectedClustersPromptPDG->Fill(fBestPDG);
-	  h_nAllSelectedClustersPromptCT->Fill(trueTime);
+	  h_nAllSelectedClustersPromptCT->Fill(clusterTime);
 	  h_nAllSelectedClustersPromptTVtxXY->Fill(fMCX, fMCY);
 	  h_nAllSelectedClustersPromptTVtxYZ->Fill(fMCY, fMCZ);
 	  h_nAllSelectedClustersPromptTVtxXZ->Fill(fMCX, fMCZ);
@@ -167,7 +170,7 @@ bool SelectionEffnPurity::Execute(){
 	  
 	  if (fBestPDG == 2112){
 	    h_nSelectedTrueNeutronsPromptPDG->Fill(fBestPDG);
-	    h_nSelectedTrueNeutronsPromptCT->Fill(trueTime);
+	    h_nSelectedTrueNeutronsPromptCT->Fill(clusterTime);
 	    h_nSelectedTrueNeutronsPromptTVtxXY->Fill(fMCX, fMCY);
 	    h_nSelectedTrueNeutronsPromptTVtxYZ->Fill(fMCY, fMCZ);
 	    h_nSelectedTrueNeutronsPromptTVtxXZ->Fill(fMCX, fMCZ);
@@ -182,12 +185,12 @@ bool SelectionEffnPurity::Execute(){
 	  ParticleCountsPrompt[fBestPDG]++;
 	}	
 	
-	else if (trueTime > 2000.0){
+	else if (clusterTime > 2000.0){
 	  //Delayed Window
 	  // if (fClusterChargeBalance < 0.4 &&  totalChargePE < 120 && fClusterChargeBalance < 0.5 -  totalChargePE / 300){
 	  //	    h_nAllSelectedClustersDelayedNhits->Fill(Nhits);
 	  h_nAllSelectedClustersDelayedPDG->Fill(fBestPDG);
-	  h_nAllSelectedClustersDelayedCT->Fill(trueTime);
+	  h_nAllSelectedClustersDelayedCT->Fill(clusterTime);
 	  h_nAllSelectedClustersDelayedTVtxXY->Fill(fMCX, fMCY);
 	  h_nAllSelectedClustersDelayedTVtxYZ->Fill(fMCY, fMCZ);
 	  h_nAllSelectedClustersDelayedTVtxXZ->Fill(fMCX, fMCZ);
@@ -197,7 +200,7 @@ bool SelectionEffnPurity::Execute(){
 	  if (fBestPDG == 2112){
 	    //	      h_nSelectedTrueNeutronsDelayedNhits->Fill(Nhits);
 	    h_nSelectedTrueNeutronsDelayedPDG->Fill(fBestPDG);
-	    h_nSelectedTrueNeutronsDelayedCT->Fill(trueTime);
+	    h_nSelectedTrueNeutronsDelayedCT->Fill(clusterTime);
 	    h_nSelectedTrueNeutronsDelayedTVtxXY->Fill(fMCX, fMCY);
 	    h_nSelectedTrueNeutronsDelayedTVtxYZ->Fill(fMCY, fMCZ);
 	    h_nSelectedTrueNeutronsDelayedTVtxXZ->Fill(fMCX, fMCZ);
@@ -450,59 +453,88 @@ bool SelectionEffnPurity::LoadFromStores()
 {
   bool goodAnnieEvent = m_data->Stores.count("ANNIEEvent");
   if (!goodAnnieEvent) {
-    logmessage = "1.1 SelectionEffnPurity:no ANNIEEvent store!";
+    logmessage = "SelectionEffnPurity:no ANNIEEvent store!";
     Log(logmessage, v_error, verbosity);
     return false;
   }
   
   bool goodClusterMap = m_data->Stores.at("ANNIEEvent")->Get(fClusterMapName, fClusterMap);
   if (!goodClusterMap) {
-    logmessage = "1.2 SelectionEffnPurity: no " + fClusterMapName + " in the ANNIEEvent!";
+    logmessage = "SelectionEffnPurity: no " + fClusterMapName + " in the ANNIEEvent!";
     Log(logmessage, v_error, verbosity);
     return false;
   }
     
   bool goodMCParticles = m_data->Stores.at("ANNIEEvent")->Get("MCParticles", fMCParticles);
   if (!goodMCParticles) {
-    logmessage = "1.3 SelectionEffnPurity:no MCParticles in the ANNIEEvent!";
+    logmessage = "SelectionEffnPurity:no MCParticles in the ANNIEEvent!";
     Log(logmessage, v_error, verbosity);
     return false;
   }
   
   bool goodMCParticleIndexMap = m_data->Stores.at("ANNIEEvent")->Get("TrackId_to_MCParticleIndex", fMCParticleIndexMap);
   if (!goodMCParticleIndexMap) {
-    logmessage = "1.4 SelectionEffnPurity:no TrackId_to_MCParticleIndex in the ANNIEEvent!";
+    logmessage = "SelectionEffnPurity:no TrackId_to_MCParticleIndex in the ANNIEEvent!";
     Log(logmessage, v_error, verbosity);
     return false;
   }
   
   bool goodClusterToBestParticlePDG = m_data->Stores.at("ANNIEEvent")->Get("ClusterToBestParticlePDG", fClusterToBestParticlePDG);
   if (!goodClusterToBestParticlePDG) {
-    logmessage = "1.6 SelectionEffnPurity: no ClusterToBestParticlePDG in the ANNIEEvent!";
+    logmessage = "SelectionEffnPurity: no ClusterToBestParticlePDG in the ANNIEEvent!";
     Log(logmessage, v_error, verbosity);
     return false;
   }
   
   bool goodClusterEfficiency = m_data->Stores.at("ANNIEEvent")->Get("ClusterEfficiency", fClusterEfficiency);
   if (!goodClusterEfficiency) {
-    logmessage = "1.7 SelectionEffnPurity:no ClusterEfficiency in the ANNIEEvent!";
+    logmessage = "SelectionEffnPurity:no ClusterEfficiency in the ANNIEEvent!";
     Log(logmessage, v_error, verbosity);
     return false;
   }
   
   bool goodClusterPurity = m_data->Stores.at("ANNIEEvent")->Get("ClusterPurity", fClusterPurity);
   if (!goodClusterPurity) {
-    logmessage = "1.8 SelectionEffnPurity:no ClusterPurity in the ANNIEEvent!";
+    logmessage = "SelectionEffnPurity:no ClusterPurity in the ANNIEEvent!";
     Log(logmessage, v_error, verbosity);
     return false;
   }
   
   bool goodClusterTotalCharge = m_data->Stores.at("ANNIEEvent")->Get("ClusterTotalCharge", fClusterTotalCharge);
   if (!goodClusterTotalCharge) {
-    logmessage = "1.9 SelectionEffnPurity:no ClusterTotalCharge in the ANNIEEvent!";
+    logmessage = "SelectionEffnPurity:no ClusterTotalCharge in the ANNIEEvent!";
     Log(logmessage, v_error, verbosity);
     return false;
   }
+
+  bool goodClusterToBestParticleIdx = m_data->Stores.at("ANNIEEvent")->Get("ClusterToBestParticleIdx", fClusterToBestParticleIdx);
+  if (!goodClusterToBestParticleIdx) {
+    logmessage = "SelectionEffnPurity:no ClusterToBestParticleIdx in the ANNIEEvent!";
+    Log(logmessage, v_error, verbosity);
+    return false;
+  }
+
+  bool goodClusterEarliestMCTime = m_data->Stores.at("ANNIEEvent")->Get("ClusterEarliestMCTime",    fClusterEarliestMCTime);
+  if (!goodClusterEarliestMCTime) {
+    logmessage = "SelectionEffnPurity:no ClusterEarliestMCTime in the ANNIEEvent!";
+    Log(logmessage, v_error, verbosity);
+    return false;
+  }
+
+  bool goodClusterMeanMCTime = m_data->Stores.at("ANNIEEvent")->Get("ClusterMeanMCTime", fClusterMeanMCTime);
+  if (!goodClusterMeanMCTime) {
+    logmessage = "SelectionEffnPurity:no ClusterMeanMCTime in the ANNIEEvent!";
+    Log(logmessage, v_error, verbosity);
+    return false;
+  }
+
+  bool goodClusterMedianMCTime = m_data->Stores.at("ANNIEEvent")->Get("ClusterMedianMCTime", fClusterMedianMCTime);
+  if (!goodClusterMedianMCTime) {
+    logmessage = "SelectionEffnPurity:no ClusterMedianMCTime in the ANNIEEvent!";
+    Log(logmessage, v_error, verbosity);
+    return false;
+  }
+
   
   bool goodClusterChargeBalance =  m_data->Stores["ANNIEEvent"]->Get("ClusterChargeBalances", ClusterChargeBalances);
   if (!goodClusterChargeBalance){

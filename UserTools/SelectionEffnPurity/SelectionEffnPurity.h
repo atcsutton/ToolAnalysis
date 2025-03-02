@@ -64,6 +64,10 @@ private:
   std::map<double, double> *fClusterTotalCharge       = nullptr;
   std::map<double, double> *fClusterNeutronCharge     = nullptr;
   std::map<double, int> *fClusterToBestParticleIdx = nullptr;
+  std::map<double, double> *fClusterEarliestMCTime    = nullptr;
+  std::map<double, double> *fClusterMeanMCTime        = nullptr;
+  std::map<double, double> *fClusterMedianMCTime      = nullptr;
+  
   //Experiment
   std::map<int, int> ParticleCountsDelayed;
   std::map<int, int> ParticleCountsPrompt;
