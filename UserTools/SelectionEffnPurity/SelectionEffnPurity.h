@@ -57,6 +57,7 @@ private:
   std::map<double, Position>           *fVertexMap          = nullptr; // The vertices
   std::vector<MCParticle>              *fMCParticles        = nullptr; // The true particles from the event
   std::map<int, int>                   *fMCParticleIndexMap = nullptr; // Map between the particle Id and it's position in MCParticles vector
+  std::map<std::string,std::vector<double>> fMCNeutCap;
 
   // Backtracker results
   std::map<double, int>    *fClusterToBestParticlePDG = nullptr; 

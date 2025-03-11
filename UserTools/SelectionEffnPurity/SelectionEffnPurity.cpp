@@ -53,44 +53,40 @@ bool SelectionEffnPurity::Execute(){
   
   if (!LoadFromStores())
     return false;
+
   
+  std::vector<int> recordedcptIdxs;
+  std::vector<double> cptPrtIDs = fMCNeutCap["CaptParent"];
+  std::vector<double> cptTimes = fMCNeutCap["CaptTime"];
+  
+  for (auto apair : *fClusterToBestParticleIdx) {
+    double CapclustTime = apair.first;
+    int clustPrtIdx = apair.second;
 
+    for (size_t i = 0; i < cptPrtIDs.size(); ++i) {
+      double cptPrtID = cptPrtIDs[i];     // Get CaptParent ID
+      double cptTime = cptTimes[i];
 
-  for (auto& mcHits : *fMCHitsMap) {
-    for (auto& mchit : mcHits.second) {
-      std::vector<int> parentIdxs = *(mchit.GetParents());
-      double hitTime = mchit.GetTime();
-      double hitCharge = mchit.GetCharge();
-      
-      for (auto parentIdx : parentIdxs) {
-	parentIdxToWeightedTimeNumerator[parentIdx] += hitCharge * hitTime;
-	parentIdxToTotalCharge[parentIdx] += hitCharge;
+      int cptPrtIdx = fMCParticleIndexMap->at(cptPrtID);
+      //      for (double cptPrtID : cptPrtIDs) {
+      //	int cptPrtIdx = fMCParticleIndexMap->at(cptPrtID);
+      if (std::find(recordedcptIdxs.begin(), recordedcptIdxs.end(), cptPrtIdx) != recordedcptIdxs.end()) {
+	// we've already recorded this true neutron                                                                                                                                   continue;
+      } else {
+	recordedcptIdxs.push_back(cptPrtIdx);
       }
+      
+      if (cptPrtIdx == clustPrtIdx) {
+	std::cout << "Cluster Time:- " << cptTime << std::endl;
+	++totalTrueVisibleNeutrons;
+	if (cptTime <= 2000)
+	  ++promptTrueVisibleNeutrons;
+	else if (cptTime > 2000){
+	  ++delayedTrueVisibleNeutrons;
+	}
+      } 
     }
   }
-  
-  // Now process the stored parentIdxs and their earliest times
-  for (const auto& entry : parentIdxToWeightedTimeNumerator) {
-    int parentIdx = entry.first;
-    double weightedTimeNumerator = entry.second;
-    double totalCharge = parentIdxToTotalCharge[parentIdx];
-   
-    if (parentIdx < 0 || parentIdx >= fMCParticles->size()) {
-      continue;
-    }
-
-    double weightedTime = (totalCharge > 0) ? (weightedTimeNumerator / totalCharge) : 0;
-    if (fMCParticles->at(parentIdx).GetPdgCode() == 2112) {
-      ++totalTrueVisibleNeutrons;
-      
-      if (weightedTime > 500 && weightedTime <= 2000)
-	++promptTrueVisibleNeutrons;
-      else if (weightedTime > 2000){
-	++delayedTrueVisibleNeutrons;
-      }
-    }
-  }
-  
   
   Float_t NeutrinoEnergy=-2;
   bool isok;
@@ -115,7 +111,6 @@ bool SelectionEffnPurity::Execute(){
     } else {
       recordedIdxs.push_back(bestPrtIdx);
     }
-    
     fTotalQ = fClusterTotalCharge->at(clusterTime);
     fBestPDG = fClusterToBestParticlePDG->at(clusterTime);
     double earliestTime = fClusterEarliestMCTime->at(clusterTime);
@@ -534,6 +529,13 @@ bool SelectionEffnPurity::LoadFromStores()
     Log("SelectionEffnPurity tool: MChits is not available", v_debug, verbosity);
     return false;
   }
+
+  bool goodMCNeutCap = m_data->Stores.at("ANNIEEvent")->Get("MCNeutCap",fMCNeutCap);
+  if (!goodMCNeutCap){
+    Log("SelectionEffnPurity tool:MCNeutCap is not available", v_debug, verbosity);
+    return false;
+  }
+
   
   return true;
 }
