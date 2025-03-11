@@ -3,6 +3,7 @@
 
 #include <string>
 #include <iostream>
+#include <unordered_map>
 
 #include "Tool.h"
 #include "Hit.h"
@@ -67,11 +68,15 @@ private:
   std::map<double, double> *fClusterEarliestMCTime    = nullptr;
   std::map<double, double> *fClusterMeanMCTime        = nullptr;
   std::map<double, double> *fClusterMedianMCTime      = nullptr;
+  std::map<unsigned long, std::vector<MCHit>> *fMCHitsMap = nullptr;
   
   //Experiment
   std::map<int, int> ParticleCountsDelayed;
   std::map<int, int> ParticleCountsPrompt;
   std::map<int, double> map_chankey2spe;
+  std::map<int, double> parentIdxToEarliestTime;
+  std::map<int, double> parentIdxToWeightedTimeNumerator;
+  std::map<int, double> parentIdxToTotalCharge;
   
   // Output ROOT file things
   TFile *fOutFile;
@@ -187,7 +192,9 @@ private:
   int nTotalTrueNeutronsDelayedMichel = 0;
   int nSelectedTrueNeutronsDelayedMichel = 0;
   int nSelectedTrueNeutronsDelayedReq = 0;
-
+  int promptTrueVisibleNeutrons = 0;
+  int delayedTrueVisibleNeutrons = 0;
+  int totalTrueVisibleNeutrons = 0;
   //experimenting
   int nSumingAllTrueNeutron = 0;
   int nSumingTotalTrueNeutron = 0;

@@ -54,61 +54,50 @@ bool SelectionEffnPurity::Execute(){
   if (!LoadFromStores())
     return false;
   
+
+
+  for (auto& mcHits : *fMCHitsMap) {
+    for (auto& mchit : mcHits.second) {
+      std::vector<int> parentIdxs = *(mchit.GetParents());
+      double hitTime = mchit.GetTime();
+      double hitCharge = mchit.GetCharge();
+      
+      for (auto parentIdx : parentIdxs) {
+	parentIdxToWeightedTimeNumerator[parentIdx] += hitCharge * hitTime;
+	parentIdxToTotalCharge[parentIdx] += hitCharge;
+      }
+    }
+  }
+  
+  // Now process the stored parentIdxs and their earliest times
+  for (const auto& entry : parentIdxToWeightedTimeNumerator) {
+    int parentIdx = entry.first;
+    double weightedTimeNumerator = entry.second;
+    double totalCharge = parentIdxToTotalCharge[parentIdx];
+   
+    if (parentIdx < 0 || parentIdx >= fMCParticles->size()) {
+      continue;
+    }
+
+    double weightedTime = (totalCharge > 0) ? (weightedTimeNumerator / totalCharge) : 0;
+    if (fMCParticles->at(parentIdx).GetPdgCode() == 2112) {
+      ++totalTrueVisibleNeutrons;
+      
+      if (weightedTime > 500 && weightedTime <= 2000)
+	++promptTrueVisibleNeutrons;
+      else if (weightedTime > 2000){
+	++delayedTrueVisibleNeutrons;
+      }
+    }
+  }
+  
+  
   Float_t NeutrinoEnergy=-2;
   bool isok;
   MCParticle neutrino;
   isok = m_data->Stores["ANNIEEvent"]->Get("NeutrinoParticle", neutrino);
   if (isok) NeutrinoEnergy = neutrino.GetStartEnergy();
-  bool IsInTank,IsInTankMC ;
-  //  double mchits = 0;
-  for (auto& MCkey : *fMCParticles){
-    
-    int ParticlePDG = MCkey.GetPdgCode();
-    int ParentPdg = MCkey.GetParentPdg();
-    Position Positionvtx = MCkey.GetStopVertex();
-    //Geo cut apply!!!!!!
-    fTrueVtxX = Positionvtx.X();
-    fTrueVtxY = Positionvtx.Y();
-    fTrueVtxZ = Positionvtx.Z();
-    IsInTank = fGeo->GetTankContained(Positionvtx);
-    double clttime = MCkey.GetStopTime();
-    
-    if (ParticlePDG==2112 && ParentPdg ==0){
-      nTotalTrueNeutronsWorld++;
-      
-      if (IsInTank){ //Selecting only Inside the tank events
-	nTotalTrueNeutrons++;
-	
-	if (clttime <= 2000.0){
-	  h_nTotalTrueNeutronsPromptPDG->Fill(ParticlePDG);
-	  h_nTotalTrueNeutronsPromptCT->Fill(clttime);
-	  h_nTotalTrueNeutronsPromptTVtxXY->Fill(fTrueVtxX, fTrueVtxY);
-	  h_nTotalTrueNeutronsPromptTVtxYZ->Fill(fTrueVtxY, fTrueVtxZ);
-	  h_nTotalTrueNeutronsPromptTVtxXZ->Fill(fTrueVtxX, fTrueVtxZ);
-	  h_nTotalTrueNeutronsPromptNE ->Fill(NeutrinoEnergy);
-
-	  //combination of both Delayed and Prompt                                                                                                                                                           
-          h_nTotalTrueNeutronsTVtxXZ->Fill(fTrueVtxX, fTrueVtxZ);
-	  nTotalTrueNeutronsPrompt++;
-	  nSumingTotalTrueNeutron++;
-	}
-	else if (clttime > 2000.0){
-	  h_nTotalTrueNeutronsDelayedPDG->Fill(ParticlePDG);
-	  h_nTotalTrueNeutronsDelayedCT->Fill(clttime);
-	  h_nTotalTrueNeutronsDelayedTVtxXY->Fill(fTrueVtxX, fTrueVtxY);
-	  h_nTotalTrueNeutronsDelayedTVtxYZ->Fill(fTrueVtxY, fTrueVtxZ);
-	  h_nTotalTrueNeutronsDelayedTVtxXZ->Fill(fTrueVtxX, fTrueVtxZ);
-	  h_nTotalTrueNeutronsDelayedNE->Fill(NeutrinoEnergy);
-
-	  //combination of both Delayed and Prompt
-	  h_nTotalTrueNeutronsTVtxXZ->Fill(fTrueVtxX, fTrueVtxZ);
-	  nTotalTrueNeutronsDelayed++;
-	  nSumingTotalTrueNeutron++;
-	}
-      }
-    }
-  }
-
+  bool IsInTank,IsInTankMC; 
   
   std::vector<int> recordedIdxs;
   double hits = 0;
@@ -219,24 +208,22 @@ bool SelectionEffnPurity::Execute(){
     }
     
   }
+
   
   return true;
 }
 
 bool SelectionEffnPurity::Finalise(){
-  std::cout << "Total True Neutrons before geo cut:-" << nTotalTrueNeutronsWorld << std::endl;
-  std::cout << "Total True Neutrons:-" << nTotalTrueNeutrons << std::endl;
-  std::cout << "Total True Neutrons Prompt:-" << nTotalTrueNeutronsPrompt << std::endl;
-  std::cout << "Total True Neutrons Delayed:-" << nTotalTrueNeutronsDelayed << std::endl;
   std::cout << "All Selected cluster before charge/balance cut:-" << nAllSelectedClustersWorld << std::endl;
   std::cout << "All Selected Cluster Prompt:-" << nAllSelectedClustersPrompt << std::endl; 
   std::cout << "Selected True Neutrons Prompt:-" << nSelectedTrueNeutronsPrompt << std::endl;
   std::cout << "All Selected Cluster Delayed:-" << nAllSelectedClustersDelayed << std::endl;
   std::cout << "Selected True Neutrons Delayed:-" << nSelectedTrueNeutronsDelayed << std::endl;
 
-  std::cout << "Sum of all Total True Neutrons:-" << nSumingTotalTrueNeutron <<std::endl;
-  std::cout << "Sum of All selected True Neutrons:-" << nSumingAllTrueNeutron << std::endl;
 
+  std::cout << "promptTrueVisibleNeutrons:-" << promptTrueVisibleNeutrons <<std::endl;
+  std::cout << "delayedTrueVisibleNeutrons:-" << delayedTrueVisibleNeutrons <<std::endl;
+  std::cout << "totalTrueVisibleNeutrons:-" << totalTrueVisibleNeutrons << std::endl;
   this->WriteHist();
 
   //Stores all particle information along with its PDG code for calculating contamination
@@ -542,6 +529,12 @@ bool SelectionEffnPurity::LoadFromStores()
     return false;
   }
 
+  bool goodMCHits = m_data->Stores.at("ANNIEEvent")->Get("MCHits", fMCHitsMap);
+  if (!goodMCHits){
+    Log("SelectionEffnPurity tool: MChits is not available", v_debug, verbosity);
+    return false;
+  }
+  
   return true;
 }
 
