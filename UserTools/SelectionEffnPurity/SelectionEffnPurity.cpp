@@ -58,6 +58,9 @@ bool SelectionEffnPurity::Execute(){
   std::vector<int> recordedcptIdxs;
   std::vector<double> cptPrtIDs = fMCNeutCap["CaptParent"];
   std::vector<double> cptTimes = fMCNeutCap["CaptTime"];
+  std::vector<double> fTrueVtxXs = fMCNeutCap["CaptVtxX"];
+  std::vector<double> fTrueVtxYs = fMCNeutCap["CaptVtxY"];
+  std::vector<double> fTrueVtxZs = fMCNeutCap["CaptVtxZ"];
   
   for (auto apair : *fClusterToBestParticleIdx) {
     double CapclustTime = apair.first;
@@ -66,10 +69,11 @@ bool SelectionEffnPurity::Execute(){
     for (size_t i = 0; i < cptPrtIDs.size(); ++i) {
       double cptPrtID = cptPrtIDs[i];     // Get CaptParent ID
       double cptTime = cptTimes[i];
-
+      double fTrueVtxX = fTrueVtxXs[i];
+      double fTrueVtxY = fTrueVtxYs[i];
+      double fTrueVtxZ = fTrueVtxZs[i];
+      
       int cptPrtIdx = fMCParticleIndexMap->at(cptPrtID);
-      //      for (double cptPrtID : cptPrtIDs) {
-      //	int cptPrtIdx = fMCParticleIndexMap->at(cptPrtID);
       if (std::find(recordedcptIdxs.begin(), recordedcptIdxs.end(), cptPrtIdx) != recordedcptIdxs.end()) {
 	// we've already recorded this true neutron                                                                                                                                   continue;
       } else {
@@ -77,11 +81,18 @@ bool SelectionEffnPurity::Execute(){
       }
       
       if (cptPrtIdx == clustPrtIdx) {
-	std::cout << "Cluster Time:- " << cptTime << std::endl;
 	++totalTrueVisibleNeutrons;
-	if (cptTime <= 2000)
-	  ++promptTrueVisibleNeutrons;
+	if (cptTime <= 2000){
+	  h_nTotalTrueNeutronsPromptCT->Fill(cptTime);
+ 	  h_nTotalTrueNeutronsPromptTVtxXY->Fill(fTrueVtxX / 100.0, fTrueVtxY / 100.0);
+ 	  h_nTotalTrueNeutronsPromptTVtxYZ->Fill(fTrueVtxY / 100.0, fTrueVtxZ / 100.0);
+ 	  h_nTotalTrueNeutronsPromptTVtxXZ->Fill(fTrueVtxX / 100.0, fTrueVtxZ / 100.0);
+	  ++promptTrueVisibleNeutrons;}
 	else if (cptTime > 2000){
+ 	  h_nTotalTrueNeutronsDelayedCT->Fill(cptTime);
+ 	  h_nTotalTrueNeutronsDelayedTVtxXY->Fill(fTrueVtxX / 100.0, fTrueVtxY / 100.0);
+ 	  h_nTotalTrueNeutronsDelayedTVtxYZ->Fill(fTrueVtxY / 100.0, fTrueVtxZ / 100.0);
+ 	  h_nTotalTrueNeutronsDelayedTVtxXZ->Fill(fTrueVtxX / 100.0, fTrueVtxZ / 100.0);
 	  ++delayedTrueVisibleNeutrons;
 	}
       } 
@@ -94,16 +105,11 @@ bool SelectionEffnPurity::Execute(){
   isok = m_data->Stores["ANNIEEvent"]->Get("NeutrinoParticle", neutrino);
   if (isok) NeutrinoEnergy = neutrino.GetStartEnergy();
   bool IsInTank,IsInTankMC; 
-  
   std::vector<int> recordedIdxs;
   double hits = 0;
-  //  double totalChargePE = 0;
-  
+
   for (auto& clusterKey : *fClusterMap){
     double clusterTime = clusterKey.first;
-    //    int bestPrtID = fClusterToBestParticleID->at(clusterTime);
-
-    //    int bestPrtIdx = fMCParticleIndexMap->at(bestPrtID);
     int bestPrtIdx = fClusterToBestParticleIdx->at(clusterTime);
     if (std::find(recordedIdxs.begin(), recordedIdxs.end(), bestPrtIdx) != recordedIdxs.end()) {
       // we've already recorded this true neutron
@@ -136,74 +142,76 @@ bool SelectionEffnPurity::Execute(){
         continue;  // Skip this hit and move to the next one
       }
     }
-    
-    //looping over all the particles from ClusterMap
-    if (IsInTankMC){
-      if (fBestPDG != 0){
-	nAllSelectedClustersWorld++;
-	
-	if (clusterTime <= 2000.0){ //Prompt window && neutron selection cuts
-	  //	  if (fClusterChargeBalance < 0.4 &&  totalChargePE < 120 && fClusterChargeBalance < 0.5 -  totalChargePE / 300){
-	  h_nAllSelectedClustersPromptPDG->Fill(fBestPDG);
-	  h_nAllSelectedClustersPromptCT->Fill(clusterTime);
-	  h_nAllSelectedClustersPromptTVtxXY->Fill(fMCX, fMCY);
-	  h_nAllSelectedClustersPromptTVtxYZ->Fill(fMCY, fMCZ);
-	  h_nAllSelectedClustersPromptTVtxXZ->Fill(fMCX, fMCZ);
-	  h_nAllSelectedClustersPromptNE->Fill(NeutrinoEnergy);
-	  nAllSelectedClustersPrompt++; 
+
+    for (size_t i = 0; i < cptPrtIDs.size(); ++i) {
+      double cptPrtID = cptPrtIDs[i];     // Get CaptParent ID                                                                                                              
+      double cptTime = cptTimes[i];
+      int cptPrtIdx = fMCParticleIndexMap->at(cptPrtID);
+      //looping over all the particles from ClusterMap
+      if (IsInTankMC){
+	if (fBestPDG != 0){
+	  nAllSelectedClustersWorld++;
 	  
-	  if (fBestPDG == 2112){
-	    h_nSelectedTrueNeutronsPromptPDG->Fill(fBestPDG);
-	    h_nSelectedTrueNeutronsPromptCT->Fill(clusterTime);
-	    h_nSelectedTrueNeutronsPromptTVtxXY->Fill(fMCX, fMCY);
-	    h_nSelectedTrueNeutronsPromptTVtxYZ->Fill(fMCY, fMCZ);
-	    h_nSelectedTrueNeutronsPromptTVtxXZ->Fill(fMCX, fMCZ);
-	    h_nSelectedTrueNeutronsPromptNE->Fill(NeutrinoEnergy);
+	  if (cptTime <= 2000.0){ //Prompt window && neutron selection cuts
+	    //	  if (fClusterChargeBalance < 0.4 &&  totalChargePE < 120 && fClusterChargeBalance < 0.5 -  totalChargePE / 300){
+	    h_nAllSelectedClustersPromptPDG->Fill(fBestPDG);
+	    h_nAllSelectedClustersPromptCT->Fill(clusterTime);
+	    h_nAllSelectedClustersPromptTVtxXY->Fill(fMCX, fMCY);
+	    h_nAllSelectedClustersPromptTVtxYZ->Fill(fMCY, fMCZ);
+	    h_nAllSelectedClustersPromptTVtxXZ->Fill(fMCX, fMCZ);
+	    h_nAllSelectedClustersPromptNE->Fill(NeutrinoEnergy);
+	    nAllSelectedClustersPrompt++; 
 	    
-	    //Combination of both delayed and prompt
-	    h_nSelectedTrueNeutronsTVtxXZ->Fill(fMCX, fMCZ);
-	    nSelectedTrueNeutronsPrompt++;
-	    nSumingAllTrueNeutron++;
+	    if (fBestPDG == 2112 && cptPrtIdx==bestPrtIdx){
+	      h_nSelectedTrueNeutronsPromptPDG->Fill(fBestPDG);
+	      h_nSelectedTrueNeutronsPromptCT->Fill(clusterTime);
+	      h_nSelectedTrueNeutronsPromptTVtxXY->Fill(fMCX, fMCY);
+	      h_nSelectedTrueNeutronsPromptTVtxYZ->Fill(fMCY, fMCZ);
+	      h_nSelectedTrueNeutronsPromptTVtxXZ->Fill(fMCX, fMCZ);
+	      h_nSelectedTrueNeutronsPromptNE->Fill(NeutrinoEnergy);
+	      
+	      //Combination of both delayed and prompt
+	      h_nSelectedTrueNeutronsTVtxXZ->Fill(fMCX, fMCZ);
+	      nSelectedTrueNeutronsPrompt++;
+	      nSumingAllTrueNeutron++;
+	    }
+	    
+	    ParticleCountsPrompt[fBestPDG]++;
+	  }	
+	  
+	  else if (cptTime > 2000.0){
+	    //Delayed Window
+	    // if (fClusterChargeBalance < 0.4 &&  totalChargePE < 120 && fClusterChargeBalance < 0.5 -  totalChargePE / 300){
+	    h_nAllSelectedClustersDelayedPDG->Fill(fBestPDG);
+	    h_nAllSelectedClustersDelayedCT->Fill(clusterTime);
+	    h_nAllSelectedClustersDelayedTVtxXY->Fill(fMCX, fMCY);
+	    h_nAllSelectedClustersDelayedTVtxYZ->Fill(fMCY, fMCZ);
+	    h_nAllSelectedClustersDelayedTVtxXZ->Fill(fMCX, fMCZ);
+	    h_nAllSelectedClustersDelayedNE->Fill(NeutrinoEnergy);
+	    nAllSelectedClustersDelayed++;
+	    
+	    if (fBestPDG == 2112 && cptPrtIdx==bestPrtIdx){
+	      h_nSelectedTrueNeutronsDelayedPDG->Fill(fBestPDG);
+	      h_nSelectedTrueNeutronsDelayedCT->Fill(clusterTime);
+	      h_nSelectedTrueNeutronsDelayedTVtxXY->Fill(fMCX, fMCY);
+	      h_nSelectedTrueNeutronsDelayedTVtxYZ->Fill(fMCY, fMCZ);
+	      h_nSelectedTrueNeutronsDelayedTVtxXZ->Fill(fMCX, fMCZ);
+	      h_nSelectedTrueNeutronsDelayedNE->Fill(NeutrinoEnergy);
+	      
+	      //Combination of both delayed and prompt                                                                                                                                                       
+	      h_nSelectedTrueNeutronsTVtxXZ->Fill(fMCX, fMCZ);
+	      nSelectedTrueNeutronsDelayed++;
+	      nSumingAllTrueNeutron++;
+	    }
+	    
+	    ParticleCountsDelayed[fBestPDG]++;
 	  }
 	  
-	  ParticleCountsPrompt[fBestPDG]++;
-	}	
-	
-	else if (clusterTime > 2000.0){
-	  //Delayed Window
-	  // if (fClusterChargeBalance < 0.4 &&  totalChargePE < 120 && fClusterChargeBalance < 0.5 -  totalChargePE / 300){
-	  //	    h_nAllSelectedClustersDelayedNhits->Fill(Nhits);
-	  h_nAllSelectedClustersDelayedPDG->Fill(fBestPDG);
-	  h_nAllSelectedClustersDelayedCT->Fill(clusterTime);
-	  h_nAllSelectedClustersDelayedTVtxXY->Fill(fMCX, fMCY);
-	  h_nAllSelectedClustersDelayedTVtxYZ->Fill(fMCY, fMCZ);
-	  h_nAllSelectedClustersDelayedTVtxXZ->Fill(fMCX, fMCZ);
-	  h_nAllSelectedClustersDelayedNE->Fill(NeutrinoEnergy);
-	  nAllSelectedClustersDelayed++;
-	  
-	  if (fBestPDG == 2112){
-	    //	      h_nSelectedTrueNeutronsDelayedNhits->Fill(Nhits);
-	    h_nSelectedTrueNeutronsDelayedPDG->Fill(fBestPDG);
-	    h_nSelectedTrueNeutronsDelayedCT->Fill(clusterTime);
-	    h_nSelectedTrueNeutronsDelayedTVtxXY->Fill(fMCX, fMCY);
-	    h_nSelectedTrueNeutronsDelayedTVtxYZ->Fill(fMCY, fMCZ);
-	    h_nSelectedTrueNeutronsDelayedTVtxXZ->Fill(fMCX, fMCZ);
-	    h_nSelectedTrueNeutronsDelayedNE->Fill(NeutrinoEnergy);
-	    
-	    //Combination of both delayed and prompt                                                                                                                                                       
-	    h_nSelectedTrueNeutronsTVtxXZ->Fill(fMCX, fMCZ);
-	    nSelectedTrueNeutronsDelayed++;
-	    nSumingAllTrueNeutron++;
-	  }
-	  
-	  ParticleCountsDelayed[fBestPDG]++;
 	}
-	
       }
     }
-    
   }
-
+  
   
   return true;
 }
