@@ -439,11 +439,11 @@ std::vector<Hit> VertexLeastSquares::FilterHits(std::vector<Hit> hits)
     if ((hits[idx].GetTime() - mean) > 10)
       continue;
 
-    bool keep = true;
-    for (uint jdx = 0; jdx < 4; ++jdx) {
-      Detector *det_i = fGeom->ChannelToDetector(hits[idx].GetTubeId());
-      Position pos_i = det_i->GetDetectorPosition();
+	Detector *det_i = fGeom->ChannelToDetector(hits[idx].GetTubeId());
+    Position pos_i = det_i->GetDetectorPosition();
 
+    bool keep = true;
+    for (uint jdx = 0; jdx < 4; ++jdx) {      
       Detector *det_j = fGeom->ChannelToDetector(filtered[jdx].GetTubeId());
       Position pos_j = det_j->GetDetectorPosition();
 
@@ -451,13 +451,12 @@ std::vector<Hit> VertexLeastSquares::FilterHits(std::vector<Hit> hits)
       double tof = (pos_i - pos_j).Mag() / fSoL;
 
       if (deltaT > tof) {
-	keep = false;
-	break;
+		keep = false;
+		break;
       }
     }
 
-    if (!keep) continue;
-    filtered.push_back(hits[idx]);
+    if (keep) filtered.push_back(hits[idx]);
   }
 
   return filtered;
@@ -487,8 +486,7 @@ std::vector<MCHit> VertexLeastSquares::FilterHitsMC(std::vector<MCHit> hits)
       double deltaT = abs(hits[jdx].GetTime() - hits[idx].GetTime());
       double tof = (pos_i - pos_j).Mag() / fSoL;
       
-      if (deltaT <= tof) 
-	compatibleIds[idx].insert(jdx);
+      if (deltaT <= tof) compatibleIds[idx].insert(jdx);
     }
 
     if (compatibleIds[idx].size() > mostCompatibleIds) {
