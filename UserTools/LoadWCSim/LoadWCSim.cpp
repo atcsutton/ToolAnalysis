@@ -324,7 +324,12 @@ bool LoadWCSim::Initialise(std::string configfile, DataModel &data){
   EventTime = new TimeClass();
 
   // FIXME ? one trigger and resetting time is ok?
-  TriggerClass beamtrigger(TriggerType, TriggerWord, 0, true, 0);
+  // TriggerClass should have a lower case type
+  std::string triggertype = TriggerType; 
+  std::transform(triggertype.begin(), triggertype.end(), triggertype.begin(),
+        [](unsigned char c){ return std::tolower(c); }); 
+
+  TriggerClass beamtrigger(triggertype, TriggerWord, 0, true, 0);
   TriggerData = new std::vector<TriggerClass>{beamtrigger}; 
 	
   // we'll put these in the CStore: so don't delete them in Finalise! It'll get handled by the Store
@@ -478,21 +483,29 @@ bool LoadWCSim::Execute()
   //  defined by previously set MCTriggerNum
   // If splitSubtriggers is False then we will loop from 0 up to the total
   //  number of triggers
-  trigsInEntry = WCSimEntry->wcsimrootevent->GetNumberOfEvents();  
+  trigsInEntry = WCSimEntry->wcsimrootevent->GetNumberOfEvents();
   MCTriggerNum = splitSubtriggers ? MCTriggerNum : 0;    
   int MaxEventNr = splitSubtriggers ? MCTriggerNum + 1 : trigsInEntry;
+
+  logmessage  = "LoadWCSim::Execute: There are " + std::to_string(trigsInEntry);
+  logmessage += " triggers in this entry";
+  Log(logmessage, v_warning, verbosity);
+
+  int nMRDTriggers  = WCSimEntry->wcsimrootevent_mrd->GetNumberOfEvents();
+  int nVetoTriggers = WCSimEntry->wcsimrootevent_facc->GetNumberOfEvents();
   
   // Loop over over the triggers
   // =============================================
   while (MCTriggerNum < MaxEventNr) {
-    logmessage = "LoadWCSim::Execute: Getting the triggers";
+    logmessage  = "LoadWCSim::Execute: Getting trigger " + std::to_string(MCTriggerNum);
+	logmessage += " of " + std::to_string(trigsInEntry); 
     Log(logmessage, v_message, verbosity);
-    
+
     WCSimRootTrigger* aTrigTank = WCSimEntry->wcsimrootevent->GetTrigger(MCTriggerNum);
-    WCSimRootTrigger* aTrigMRD  = ( (MCTriggerNum < trigsInEntry)
+    WCSimRootTrigger* aTrigMRD  = ( (MCTriggerNum < nMRDTriggers)
 									? WCSimEntry->wcsimrootevent_mrd->GetTrigger(MCTriggerNum)
 									: nullptr );
-    WCSimRootTrigger* aTrigVeto = ( (MCTriggerNum < trigsInEntry)
+    WCSimRootTrigger* aTrigVeto = ( (MCTriggerNum < nVetoTriggers)
 									? WCSimEntry->wcsimrootevent_facc->GetTrigger(MCTriggerNum)
 									: nullptr );
 
@@ -567,7 +580,7 @@ bool LoadWCSim::Execute()
 	
   // Save things to the store
   // =============================================
-  logmessage = "LoadWCSim::Execute: Setting the store variables";
+  logmessage  = "LoadWCSim::Execute: Setting the store variables";
   Log(logmessage, v_message, verbosity);
 
   m_data->Stores.at("ANNIEEvent")->Set("RunNumber", RunNumber);
@@ -581,7 +594,7 @@ bool LoadWCSim::Execute()
 
   // Set up Particles object for reconstructed particles
   std::vector<Particle> Particles_Reco;
-  m_data->Stores["ANNIEEvent"]->Set("Particles", Particles_Reco);
+  m_data->Stores.at("ANNIEEvent")->Set("Particles", Particles_Reco);
 
   logmessage = "LoadWCSim::Execute: Setting the MCHits";
   Log(logmessage, v_debug, verbosity);
@@ -845,7 +858,7 @@ void LoadWCSim::ConstructDetectors(Geometry* anniegeom, int numDets, std::string
     unsigned long uniquedetectorkey;
     if (system == "Tank")  uniquedetectorkey = pmtid_to_channelkey[detIdx + 1];
     if (system == "MRD")   uniquedetectorkey = mrdid_to_channelkey[detIdx];
-    if (system == "Veto")  uniquedetectorkey = fmvid_to_channelkey[detIdx + 1];
+    if (system == "Veto")  uniquedetectorkey = fmvid_to_channelkey[detIdx];
     if (system == "LAPPD") uniquedetectorkey = anniegeom->ConsumeNextFreeDetectorKey();
 
     std::string CylLocString;
@@ -1120,6 +1133,10 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
 							
 		  // Save the neutrino own particle in the store
 		  m_data->Stores["ANNIEEvent"]->Set("NeutrinoParticle", neutrino);
+
+		  // Don't also create a particle for the neutrino
+		  continue;
+		  
 		}// done extracting the neutrino information
 	  
 		// Now load the other particles
